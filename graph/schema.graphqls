@@ -2,27 +2,68 @@
 #
 # https://gqlgen.com/getting-started/
 
-type Todo {
+interface User {
   id: ID!
-  text: String!
-  done: Boolean!
-  user: User!
+  email: String!
+  hashedPassword: String!
+  profilePic: String
+  lessons: [Lesson]!
 }
 
-type User {
+enum Subject {
+  PHYSICS
+  ECONOMICS
+  MATHEMTATICS
+  CHEMISTRY
+  BIOLOGY
+}
+
+scalar Date
+
+type Student implements User {
   id: ID!
-  name: String!
+  email: String!
+  hashedPassword: String!
+  profilePic: String
+  lessons: [Lesson!]!
+}
+
+type Tutor implements User {
+  id: ID!
+  email: String!
+  hashedPassword: String!
+  profilePic: String
+  lessons: [Lesson!]!
+  hourlyRate: Int!
+  bio: String!
+  rating: Float!
+  education: [String]!
+  subjects: [Subject]!
+}
+
+type Lesson {
+  id: ID!
+  subject: Subject!
+  summary: String
+  tutor: Tutor!
+  student: Student!
+  duration: Int!
+  date: Date!
+  chat: String!
+}
+
+input NewStudent {
+  id: ID!
+  email: String!
+  hashedPassword: String!
 }
 
 type Query {
-  todos: [Todo!]!
-}
-
-input NewTodo {
-  text: String!
-  userId: String!
+  self: User!,
+  users: [User!]!
+  lessons: [Lesson!]!
 }
 
 type Mutation {
-  createTodo(input: NewTodo!): Todo!
+  createStudent(input: NewStudent!): Student!
 }

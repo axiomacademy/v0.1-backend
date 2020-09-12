@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS tutors;
+DROP TYPE IF EXISTS subject;

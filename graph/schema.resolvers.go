@@ -11,11 +11,27 @@ import (
 	"github.com/solderneer/axiom-backend/graph/model"
 )
 
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
+func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStudent) (*model.Student, error) {
+	student := &model.Student{
+		ID:             input.ID,
+		Email:          input.Email,
+		HashedPassword: input.HashedPassword,
+		Lessons:        []*model.Lesson{},
+	}
+
+	r.students = append(r.students, student)
+	return student, nil
+}
+
+func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
+func (r *queryResolver) Users(ctx context.Context) ([]model.User, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
