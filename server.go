@@ -9,6 +9,8 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/solderneer/axiom-backend/graph"
 	"github.com/solderneer/axiom-backend/graph/generated"
+
+	db "github.com/solderneer/axiom-backend/db"
 )
 
 const defaultPort = "8080"
@@ -18,6 +20,11 @@ func main() {
 	if port == "" {
 		port = defaultPort
 	}
+
+	db.InitDb()
+	db.Migrate()
+
+	defer db.DbPool.Close()
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 

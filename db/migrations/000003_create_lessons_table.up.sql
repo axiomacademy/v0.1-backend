@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS lessons {
+CREATE TABLE IF NOT EXISTS lessons (
   id UUID NOT NULL UNIQUE,
   subject subject NOT NULL,
   tutor UUID NOT NULL,
@@ -13,5 +13,5 @@ CREATE TABLE IF NOT EXISTS lessons {
   CONSTRAINT fk_student
     FOREIGN KEY(student)
       REFERENCES students(id)
-};
+);
   
