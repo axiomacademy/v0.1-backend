@@ -24,16 +24,16 @@ type Lesson struct {
 }
 
 type NewStudent struct {
-	ID             string `json:"id"`
 	Email          string `json:"email"`
 	HashedPassword string `json:"hashedPassword"`
+	ProfilePic     string `json:"profilePic"`
 }
 
 type Student struct {
 	ID             string    `json:"id"`
 	Email          string    `json:"email"`
 	HashedPassword string    `json:"hashedPassword"`
-	ProfilePic     *string   `json:"profilePic"`
+	ProfilePic     string    `json:"profilePic"`
 	Lessons        []*Lesson `json:"lessons"`
 }
 
@@ -43,7 +43,7 @@ type Tutor struct {
 	ID             string     `json:"id"`
 	Email          string     `json:"email"`
 	HashedPassword string     `json:"hashedPassword"`
-	ProfilePic     *string    `json:"profilePic"`
+	ProfilePic     string     `json:"profilePic"`
 	Lessons        []*Lesson  `json:"lessons"`
 	HourlyRate     int        `json:"hourlyRate"`
 	Bio            string     `json:"bio"`

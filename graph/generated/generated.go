@@ -377,7 +377,7 @@ interface User {
   id: ID!
   email: String!
   hashedPassword: String!
-  profilePic: String
+  profilePic: String!
   lessons: [Lesson]!
 }
 
@@ -395,7 +395,7 @@ type Student implements User {
   id: ID!
   email: String!
   hashedPassword: String!
-  profilePic: String
+  profilePic: String!
   lessons: [Lesson!]!
 }
 
@@ -403,7 +403,7 @@ type Tutor implements User {
   id: ID!
   email: String!
   hashedPassword: String!
-  profilePic: String
+  profilePic: String!
   lessons: [Lesson!]!
   hourlyRate: Int!
   bio: String!
@@ -424,9 +424,9 @@ type Lesson {
 }
 
 input NewStudent {
-  id: ID!
   email: String!
   hashedPassword: String!
+  profilePic: String!
 }
 
 type Query {
@@ -1121,11 +1121,14 @@ func (ec *executionContext) _Student_profilePic(ctx context.Context, field graph
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Student_lessons(ctx context.Context, field graphql.CollectedField, obj *model.Student) (ret graphql.Marshaler) {
@@ -1288,11 +1291,14 @@ func (ec *executionContext) _Tutor_profilePic(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tutor_lessons(ctx context.Context, field graphql.CollectedField, obj *model.Tutor) (ret graphql.Marshaler) {
@@ -2560,14 +2566,6 @@ func (ec *executionContext) unmarshalInputNewStudent(ctx context.Context, obj in
 
 	for k, v := range asMap {
 		switch k {
-		case "id":
-			var err error
-
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
-			it.ID, err = ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "email":
 			var err error
 
@@ -2581,6 +2579,14 @@ func (ec *executionContext) unmarshalInputNewStudent(ctx context.Context, obj in
 
 			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("hashedPassword"))
 			it.HashedPassword, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "profilePic":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("profilePic"))
+			it.ProfilePic, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2811,6 +2817,9 @@ func (ec *executionContext) _Student(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "profilePic":
 			out.Values[i] = ec._Student_profilePic(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "lessons":
 			out.Values[i] = ec._Student_lessons(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -2855,6 +2864,9 @@ func (ec *executionContext) _Tutor(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "profilePic":
 			out.Values[i] = ec._Tutor_profilePic(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "lessons":
 			out.Values[i] = ec._Tutor_lessons(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

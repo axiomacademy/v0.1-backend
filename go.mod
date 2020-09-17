@@ -7,5 +7,6 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.12.2
 	github.com/jackc/pgx v3.6.2+incompatible // indirect
 	github.com/jackc/pgx/v4 v4.8.1
+	github.com/pborman/uuid v1.2.1
 	github.com/vektah/gqlparser/v2 v2.0.1
 )

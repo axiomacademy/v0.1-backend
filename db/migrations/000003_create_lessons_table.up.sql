@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS lessons (
-  id UUID NOT NULL UNIQUE,
+  id VARCHAR(36) NOT NULL UNIQUE,
   subject subject NOT NULL,
-  tutor UUID NOT NULL,
-  student UUID NOT NULL,
+  tutor VARCHAR(36) NOT NULL,
+  student VARCHAR(36) NOT NULL,
   duration INT NOT NULL,
   date TIMESTAMP NOT NULL,
   chat TEXT,

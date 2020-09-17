@@ -7,20 +7,20 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
 	"github.com/solderneer/axiom-backend/graph/model"
 )
 
 func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStudent) (*model.Student, error) {
-	student := &model.Student{
-		ID:             input.ID,
-		Email:          input.Email,
-		HashedPassword: input.HashedPassword,
-		Lessons:        []*model.Lesson{},
+	dbStudent := &db.Student{}
+
+	err := dbStudent.Create(input.Email, input.HashedPassword, input.ProfilePic)
+	if err != nil {
+		return nil, err
 	}
 
-	r.students = append(r.students, student)
-	return student, nil
+	return &model.Student{ID: dbStudent.Id, Email: dbStudent.Email, HashedPassword: dbStudent.HashedPassword, ProfilePic: dbStudent.ProfilePic}, nil
 }
 
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {

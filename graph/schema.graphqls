@@ -6,7 +6,7 @@ interface User {
   id: ID!
   email: String!
   hashedPassword: String!
-  profilePic: String
+  profilePic: String!
   lessons: [Lesson]!
 }
 
@@ -24,7 +24,7 @@ type Student implements User {
   id: ID!
   email: String!
   hashedPassword: String!
-  profilePic: String
+  profilePic: String!
   lessons: [Lesson!]!
 }
 
@@ -32,7 +32,7 @@ type Tutor implements User {
   id: ID!
   email: String!
   hashedPassword: String!
-  profilePic: String
+  profilePic: String!
   lessons: [Lesson!]!
   hourlyRate: Int!
   bio: String!
@@ -53,9 +53,9 @@ type Lesson {
 }
 
 input NewStudent {
-  id: ID!
   email: String!
   hashedPassword: String!
+  profilePic: String!
 }
 
 type Query {
