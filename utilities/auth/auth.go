@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"context"
+	"errors"
 	"log"
 	"time"
 
@@ -47,4 +49,14 @@ func HashPassword(password string) (string, error) {
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+// Reads a context and returns the appropriate type
+func UserFromContext(ctx context.Context) (interface{}, string, error) {
+	raw, ok := ctx.Value("user").(map[string]interface{})
+	if !ok {
+		return nil, "", errors.New("Unauthorised, please log in")
+	}
+
+	return raw["user"], raw["type"].(string), nil
 }

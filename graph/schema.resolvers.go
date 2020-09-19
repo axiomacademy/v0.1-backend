@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/solderneer/axiom-backend/db"
@@ -14,14 +15,14 @@ import (
 )
 
 func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStudent) (string, error) {
-	dbStudent := &db.Student{}
+	s := &db.Student{}
 
-	err := dbStudent.Create(input.Email, input.Password, input.ProfilePic)
+	err := s.Create(input.Email, input.Password, input.ProfilePic)
 	if err != nil {
 		return "", err
 	}
 
-	token, err := auth.GenerateToken(dbStudent.Id, r.Secret)
+	token, err := auth.GenerateToken(s.Id, r.Secret)
 	if err != nil {
 		return "", err
 	}
@@ -30,7 +31,20 @@ func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStu
 }
 
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if utype == "s" {
+		s := u.(db.Student)
+		return &model.Student{ID: s.Id, Email: s.Email, ProfilePic: s.ProfilePic}, nil
+	} else if utype == "t" {
+		t := u.(db.Tutor)
+		return &model.Tutor{ID: t.Id, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: t.Subjects}, nil
+	} else {
+		return nil, errors.New("Unauthorised, please log in")
+	}
 }
 
 func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {

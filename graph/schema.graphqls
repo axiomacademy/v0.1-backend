@@ -6,15 +6,6 @@ interface User {
   id: ID!
   email: String!
   profilePic: String!
-  lessons: [Lesson]!
-}
-
-enum Subject {
-  PHYSICS
-  ECONOMICS
-  MATHEMTATICS
-  CHEMISTRY
-  BIOLOGY
 }
 
 scalar Date
@@ -23,24 +14,22 @@ type Student implements User {
   id: ID!
   email: String!
   profilePic: String!
-  lessons: [Lesson!]!
 }
 
 type Tutor implements User {
   id: ID!
   email: String!
   profilePic: String!
-  lessons: [Lesson!]!
   hourlyRate: Int!
   bio: String!
-  rating: Float!
-  education: [String]!
-  subjects: [Subject]!
+  rating: Int!
+  education: [String!]!
+  subjects: [String!]!
 }
 
 type Lesson {
   id: ID!
-  subject: Subject!
+  subject: String!
   summary: String
   tutor: Tutor!
   student: Student!

@@ -2,19 +2,13 @@
 
 package model
 
-import (
-	"fmt"
-	"io"
-	"strconv"
-)
-
 type User interface {
 	IsUser()
 }
 
 type Lesson struct {
 	ID       string   `json:"id"`
-	Subject  Subject  `json:"subject"`
+	Subject  string   `json:"subject"`
 	Summary  *string  `json:"summary"`
 	Tutor    *Tutor   `json:"tutor"`
 	Student  *Student `json:"student"`
@@ -30,71 +24,22 @@ type NewStudent struct {
 }
 
 type Student struct {
-	ID         string    `json:"id"`
-	Email      string    `json:"email"`
-	ProfilePic string    `json:"profilePic"`
-	Lessons    []*Lesson `json:"lessons"`
+	ID         string `json:"id"`
+	Email      string `json:"email"`
+	ProfilePic string `json:"profilePic"`
 }
 
 func (Student) IsUser() {}
 
 type Tutor struct {
-	ID         string     `json:"id"`
-	Email      string     `json:"email"`
-	ProfilePic string     `json:"profilePic"`
-	Lessons    []*Lesson  `json:"lessons"`
-	HourlyRate int        `json:"hourlyRate"`
-	Bio        string     `json:"bio"`
-	Rating     float64    `json:"rating"`
-	Education  []*string  `json:"education"`
-	Subjects   []*Subject `json:"subjects"`
+	ID         string   `json:"id"`
+	Email      string   `json:"email"`
+	ProfilePic string   `json:"profilePic"`
+	HourlyRate int      `json:"hourlyRate"`
+	Bio        string   `json:"bio"`
+	Rating     int      `json:"rating"`
+	Education  []string `json:"education"`
+	Subjects   []string `json:"subjects"`
 }
 
 func (Tutor) IsUser() {}
-
-type Subject string
-
-const (
-	SubjectPhysics      Subject = "PHYSICS"
-	SubjectEconomics    Subject = "ECONOMICS"
-	SubjectMathemtatics Subject = "MATHEMTATICS"
-	SubjectChemistry    Subject = "CHEMISTRY"
-	SubjectBiology      Subject = "BIOLOGY"
-)
-
-var AllSubject = []Subject{
-	SubjectPhysics,
-	SubjectEconomics,
-	SubjectMathemtatics,
-	SubjectChemistry,
-	SubjectBiology,
-}
-
-func (e Subject) IsValid() bool {
-	switch e {
-	case SubjectPhysics, SubjectEconomics, SubjectMathemtatics, SubjectChemistry, SubjectBiology:
-		return true
-	}
-	return false
-}
-
-func (e Subject) String() string {
-	return string(e)
-}
-
-func (e *Subject) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = Subject(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Subject", str)
-	}
-	return nil
-}
-
-func (e Subject) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
