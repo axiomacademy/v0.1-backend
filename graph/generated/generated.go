@@ -56,7 +56,9 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		CreateLesson  func(childComplexity int, input model.NewLesson) int
 		CreateStudent func(childComplexity int, input model.NewStudent) int
+		CreateTutor   func(childComplexity int, input model.NewTutor) int
 	}
 
 	Query struct {
@@ -84,6 +86,8 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateStudent(ctx context.Context, input model.NewStudent) (string, error)
+	CreateTutor(ctx context.Context, input model.NewTutor) (string, error)
+	CreateLesson(ctx context.Context, input model.NewLesson) (string, error)
 }
 type QueryResolver interface {
 	Self(ctx context.Context) (model.User, error)
@@ -161,6 +165,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Lesson.Tutor(childComplexity), true
 
+	case "Mutation.createLesson":
+		if e.complexity.Mutation.CreateLesson == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createLesson_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateLesson(childComplexity, args["input"].(model.NewLesson)), true
+
 	case "Mutation.createStudent":
 		if e.complexity.Mutation.CreateStudent == nil {
 			break
@@ -172,6 +188,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateStudent(childComplexity, args["input"].(model.NewStudent)), true
+
+	case "Mutation.createTutor":
+		if e.complexity.Mutation.CreateTutor == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createTutor_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateTutor(childComplexity, args["input"].(model.NewTutor)), true
 
 	case "Query.lessons":
 		if e.complexity.Query.Lessons == nil {
@@ -360,7 +388,7 @@ type Tutor implements User {
 type Lesson {
   id: ID!
   subject: String!
-  summary: String
+  summary: String!
   tutor: Tutor!
   student: Student!
   duration: Int!
@@ -374,6 +402,24 @@ input NewStudent {
   profilePic: String!
 }
 
+input NewTutor {
+  email: String!
+  password: String!
+  profilePic: String!
+  hourlyRate: Int!
+  bio: String!
+  education: [String!]!
+  subjects: [String!]!
+}
+
+input NewLesson {
+  subject: String!
+  tutor: String!
+  student: String!
+  duration: Int!
+  date: Date!
+}
+
 type Query {
   self: User!,
   lessons: [Lesson!]!
@@ -381,6 +427,8 @@ type Query {
 
 type Mutation {
   createStudent(input: NewStudent!): String!
+  createTutor(input: NewTutor!): String!
+  createLesson(input: NewLesson!): String!
 }
 `, BuiltIn: false},
 }
@@ -390,6 +438,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_createLesson_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.NewLesson
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNNewLesson2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewLesson(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createStudent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -397,6 +460,21 @@ func (ec *executionContext) field_Mutation_createStudent_args(ctx context.Contex
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
 		arg0, err = ec.unmarshalNNewStudent2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewStudent(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createTutor_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.NewTutor
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNNewTutor2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewTutor(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -550,11 +628,14 @@ func (ec *executionContext) _Lesson_summary(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Lesson_tutor(ctx context.Context, field graphql.CollectedField, obj *model.Lesson) (ret graphql.Marshaler) {
@@ -752,6 +833,88 @@ func (ec *executionContext) _Mutation_createStudent(ctx context.Context, field g
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().CreateStudent(rctx, args["input"].(model.NewStudent))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createTutor(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createTutor_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateTutor(rctx, args["input"].(model.NewTutor))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createLesson(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createLesson_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateLesson(rctx, args["input"].(model.NewLesson))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2334,6 +2497,58 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputNewLesson(ctx context.Context, obj interface{}) (model.NewLesson, error) {
+	var it model.NewLesson
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "subject":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("subject"))
+			it.Subject, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "tutor":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("tutor"))
+			it.Tutor, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "student":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("student"))
+			it.Student, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "duration":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("duration"))
+			it.Duration, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "date":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("date"))
+			it.Date, err = ec.unmarshalNDate2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewStudent(ctx context.Context, obj interface{}) (model.NewStudent, error) {
 	var it model.NewStudent
 	var asMap = obj.(map[string]interface{})
@@ -2361,6 +2576,74 @@ func (ec *executionContext) unmarshalInputNewStudent(ctx context.Context, obj in
 
 			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("profilePic"))
 			it.ProfilePic, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewTutor(ctx context.Context, obj interface{}) (model.NewTutor, error) {
+	var it model.NewTutor
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "email":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "profilePic":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("profilePic"))
+			it.ProfilePic, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "hourlyRate":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("hourlyRate"))
+			it.HourlyRate, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "bio":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("bio"))
+			it.Bio, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "education":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("education"))
+			it.Education, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "subjects":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("subjects"))
+			it.Subjects, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2424,6 +2707,9 @@ func (ec *executionContext) _Lesson(ctx context.Context, sel ast.SelectionSet, o
 			}
 		case "summary":
 			out.Values[i] = ec._Lesson_summary(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "tutor":
 			out.Values[i] = ec._Lesson_tutor(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -2477,6 +2763,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "createStudent":
 			out.Values[i] = ec._Mutation_createStudent(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createTutor":
+			out.Values[i] = ec._Mutation_createTutor(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createLesson":
+			out.Values[i] = ec._Mutation_createLesson(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3000,8 +3296,18 @@ func (ec *executionContext) marshalNLesson2ᚖgithubᚗcomᚋsolderneerᚋaxiom�
 	return ec._Lesson(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNNewLesson2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewLesson(ctx context.Context, v interface{}) (model.NewLesson, error) {
+	res, err := ec.unmarshalInputNewLesson(ctx, v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNNewStudent2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewStudent(ctx context.Context, v interface{}) (model.NewStudent, error) {
 	res, err := ec.unmarshalInputNewStudent(ctx, v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewTutor2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewTutor(ctx context.Context, v interface{}) (model.NewTutor, error) {
+	res, err := ec.unmarshalInputNewTutor(ctx, v)
 	return res, graphql.WrapErrorWithInputPath(ctx, err)
 }
 

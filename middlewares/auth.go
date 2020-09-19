@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -55,6 +56,7 @@ func (amw *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			err = tutor.GetById(id)
 
 			if err != nil {
+				fmt.Println(err)
 				http.Error(w, "Malformed auth token", http.StatusForbidden)
 				return
 			}

@@ -9,7 +9,7 @@ type User interface {
 type Lesson struct {
 	ID       string   `json:"id"`
 	Subject  string   `json:"subject"`
-	Summary  *string  `json:"summary"`
+	Summary  string   `json:"summary"`
 	Tutor    *Tutor   `json:"tutor"`
 	Student  *Student `json:"student"`
 	Duration int      `json:"duration"`
@@ -17,10 +17,28 @@ type Lesson struct {
 	Chat     string   `json:"chat"`
 }
 
+type NewLesson struct {
+	Subject  string `json:"subject"`
+	Tutor    string `json:"tutor"`
+	Student  string `json:"student"`
+	Duration int    `json:"duration"`
+	Date     string `json:"date"`
+}
+
 type NewStudent struct {
 	Email      string `json:"email"`
 	Password   string `json:"password"`
 	ProfilePic string `json:"profilePic"`
+}
+
+type NewTutor struct {
+	Email      string   `json:"email"`
+	Password   string   `json:"password"`
+	ProfilePic string   `json:"profilePic"`
+	HourlyRate int      `json:"hourlyRate"`
+	Bio        string   `json:"bio"`
+	Education  []string `json:"education"`
+	Subjects   []string `json:"subjects"`
 }
 
 type Student struct {

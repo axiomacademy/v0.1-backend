@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 
+	"github.com/jackc/pgtype"
 	"github.com/pborman/uuid"
+	"github.com/solderneer/axiom-backend/graph/model"
 	"github.com/solderneer/axiom-backend/utilities/auth"
 )
 
@@ -19,7 +21,7 @@ type Tutor struct {
 	Subjects       []string
 }
 
-func (t *Tutor) Create(email string, password string, profile_pic string, hourly_rate int, rating int) error {
+func (t *Tutor) Create(email string, password string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string) error {
 
 	// GENERATING UUID
 	t.Id = "t:" + uuid.New()
@@ -35,6 +37,9 @@ func (t *Tutor) Create(email string, password string, profile_pic string, hourly
 	t.ProfilePic = profile_pic
 	t.HourlyRate = hourly_rate
 	t.Rating = rating
+	t.Bio = bio
+	t.Education = education
+	t.Subjects = subjects
 
 	tx, err := DbPool.Begin(context.Background())
 	if err != nil {
@@ -43,8 +48,8 @@ func (t *Tutor) Create(email string, password string, profile_pic string, hourly
 
 	defer tx.Rollback(context.Background())
 
-	sql := `INSERT INTO tutors (id, email, hashed_password, profile_pic, hourly_rate, rating) VALUES ($1, $2, $3, $4, $5, $6)`
-	_, err = tx.Exec(context.Background(), sql, t.Id, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Rating)
+	sql := `INSERT INTO tutors (id, email, hashed_password, profile_pic, hourly_rate, rating, bio, education, subjects) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	_, err = tx.Exec(context.Background(), sql, t.Id, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Rating, t.Bio, t.Education, t.Subjects)
 
 	if err != nil {
 		return err
@@ -84,6 +89,8 @@ func (t *Tutor) Update() error {
 func (t *Tutor) GetById(id string) error {
 	sql := `SELECT id, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE id = $1`
 
+	var subjects pgtype.EnumArray
+
 	if err := DbPool.QueryRow(context.Background(), sql, id).Scan(
 		&t.Id,
 		&t.Email,
@@ -93,10 +100,12 @@ func (t *Tutor) GetById(id string) error {
 		&t.Bio,
 		&t.Rating,
 		&t.Education,
-		&t.Subjects); err != nil {
+		&subjects); err != nil {
 		return err
 	}
 
+	// Populating subjects separately because it is an enum array
+	subjects.AssignTo(&t.Subjects)
 	return nil
 }
 
@@ -128,4 +137,8 @@ func (t *Tutor) GetLessons() ([]Lesson, error) {
 	}
 
 	return lessons, nil
+}
+
+func (t *Tutor) ToModel() model.Tutor {
+	return model.Tutor{ID: t.Id, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: t.Subjects}
 }

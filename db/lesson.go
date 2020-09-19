@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
+	"github.com/solderneer/axiom-backend/graph/model"
 )
 
 type Lesson struct {
@@ -80,4 +81,17 @@ func (l *Lesson) GetById(id string) error {
 	}
 
 	return nil
+}
+
+func (l *Lesson) ToModel() model.Lesson {
+	s := Student{}
+	t := Tutor{}
+
+	s.GetById(l.Student)
+	t.GetById(l.Tutor)
+
+	rs := s.ToModel()
+	rt := t.ToModel()
+
+	return model.Lesson{ID: l.Id, Subject: l.Subject, Summary: l.Summary, Tutor: &rt, Student: &rs, Duration: l.Duration, Date: l.Date.String(), Chat: l.Chat}
 }

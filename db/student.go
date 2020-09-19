@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pborman/uuid"
+	"github.com/solderneer/axiom-backend/graph/model"
 	"github.com/solderneer/axiom-backend/utilities/auth"
 )
 
@@ -112,4 +113,8 @@ func (s *Student) GetLessons() ([]Lesson, error) {
 	}
 
 	return lessons, nil
+}
+
+func (s *Student) ToModel() model.Student {
+	return model.Student{ID: s.Id, Email: s.Email, ProfilePic: s.ProfilePic}
 }

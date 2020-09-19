@@ -30,7 +30,7 @@ type Tutor implements User {
 type Lesson {
   id: ID!
   subject: String!
-  summary: String
+  summary: String!
   tutor: Tutor!
   student: Student!
   duration: Int!
@@ -44,6 +44,24 @@ input NewStudent {
   profilePic: String!
 }
 
+input NewTutor {
+  email: String!
+  password: String!
+  profilePic: String!
+  hourlyRate: Int!
+  bio: String!
+  education: [String!]!
+  subjects: [String!]!
+}
+
+input NewLesson {
+  subject: String!
+  tutor: String!
+  student: String!
+  duration: Int!
+  date: Date!
+}
+
 type Query {
   self: User!,
   lessons: [Lesson!]!
@@ -51,4 +69,6 @@ type Query {
 
 type Mutation {
   createStudent(input: NewStudent!): String!
+  createTutor(input: NewTutor!): String!
+  createLesson(input: NewLesson!): String!
 }

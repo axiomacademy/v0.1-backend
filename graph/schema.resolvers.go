@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
@@ -29,6 +30,27 @@ func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStu
 	return token, nil
 }
 
+func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor) (string, error) {
+	t := &db.Tutor{}
+
+	// DEFAULT RATING IS 3
+	err := t.Create(input.Email, input.Password, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, input.Subjects)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := auth.GenerateToken(t.Id, r.Secret)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
+func (r *mutationResolver) CreateLesson(ctx context.Context, input model.NewLesson) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
@@ -37,10 +59,10 @@ func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 
 	if utype == "s" {
 		s := u.(db.Student)
-		return &model.Student{ID: s.Id, Email: s.Email, ProfilePic: s.ProfilePic}, nil
+		return s.ToModel(), nil
 	} else if utype == "t" {
 		t := u.(db.Tutor)
-		return &model.Tutor{ID: t.Id, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: t.Subjects}, nil
+		return t.ToModel(), nil
 	} else {
 		return nil, errors.New("Unauthorised, please log in")
 	}
@@ -52,37 +74,31 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 		return nil, err
 	}
 
+	var dbLessons []db.Lesson
 	if utype == "s" {
 		s := u.(db.Student)
-		dbLessons, err := s.GetLessons()
+		dbLessons, err = s.GetLessons()
 		if err != nil {
 			return nil, err
 		}
-
-		// Convert dbLessons to gql Lesson Type
-		var lessons []*model.Lesson
-		for _, l := range dbLessons {
-			lessons = append(lessons, &model.Lesson{ID: l.Id, Subject: l.Subject, Summary: l.Summary, Tutor: l.Tutor, Student: l.Student, Duration: l.Duration, Date: l.Date, Chat: l.Chat})
-		}
-
-		return lessons, nil
 	} else if utype == "t" {
 		t := u.(db.Tutor)
-		dbLessons, err := t.GetLessons()
+		dbLessons, err = t.GetLessons()
 		if err != nil {
 			return nil, err
 		}
-
-		// Convert dbLessons to gql Lesson Type
-		var lessons []*model.Lesson
-		for _, l := range dbLessons {
-			lessons = append(lessons, &model.Lesson{ID: l.Id, Subject: l.Subject, Summary: l.Summary, Tutor: l.Tutor, Student: l.Student, Duration: l.Duration, Date: l.Date, Chat: l.Chat})
-		}
-
-		return lessons, nil
 	} else {
 		return nil, errors.New("Unauthorised, please log in")
 	}
+
+	// Convert dbLessons to gql Lesson Type
+	var lessons []*model.Lesson
+	for _, l := range dbLessons {
+		rl := l.ToModel()
+		lessons = append(lessons, &rl)
+	}
+
+	return lessons, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
