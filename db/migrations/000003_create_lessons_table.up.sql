@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS lessons (
   id VARCHAR(36) NOT NULL UNIQUE,
   subject subject NOT NULL,
+  summary TEXT,
   tutor VARCHAR(36) NOT NULL,
   student VARCHAR(36) NOT NULL,
   duration INT NOT NULL,

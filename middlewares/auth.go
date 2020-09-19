@@ -38,7 +38,7 @@ func (amw *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 		// Retrieve user from database
 		if idSplit[0] == "s" {
 			student := db.Student{}
-			err = student.GetById(idSplit[1])
+			err = student.GetById(id)
 
 			if err != nil {
 				http.Error(w, "Malformed auth token", http.StatusForbidden)
@@ -47,12 +47,12 @@ func (amw *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 
 			ctx = context.WithValue(r.Context(), "user", map[string]interface{}{
 				"user": student,
-				"type": "student",
+				"type": idSplit[0],
 			})
 
 		} else if idSplit[0] == "t" {
 			tutor := db.Tutor{}
-			err = tutor.GetById(idSplit[1])
+			err = tutor.GetById(id)
 
 			if err != nil {
 				http.Error(w, "Malformed auth token", http.StatusForbidden)
@@ -61,7 +61,7 @@ func (amw *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 
 			ctx = context.WithValue(r.Context(), "user", map[string]interface{}{
 				"user": tutor,
-				"type": "tutor",
+				"type": idSplit[0],
 			})
 		} else {
 			http.Error(w, "Malformed auth token", http.StatusForbidden)

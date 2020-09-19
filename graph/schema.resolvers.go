@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
@@ -48,7 +47,42 @@ func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 }
 
 func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
-	panic(fmt.Errorf("not implemented"))
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if utype == "s" {
+		s := u.(db.Student)
+		dbLessons, err := s.GetLessons()
+		if err != nil {
+			return nil, err
+		}
+
+		// Convert dbLessons to gql Lesson Type
+		var lessons []*model.Lesson
+		for _, l := range dbLessons {
+			lessons = append(lessons, &model.Lesson{ID: l.Id, Subject: l.Subject, Summary: l.Summary, Tutor: l.Tutor, Student: l.Student, Duration: l.Duration, Date: l.Date, Chat: l.Chat})
+		}
+
+		return lessons, nil
+	} else if utype == "t" {
+		t := u.(db.Tutor)
+		dbLessons, err := t.GetLessons()
+		if err != nil {
+			return nil, err
+		}
+
+		// Convert dbLessons to gql Lesson Type
+		var lessons []*model.Lesson
+		for _, l := range dbLessons {
+			lessons = append(lessons, &model.Lesson{ID: l.Id, Subject: l.Subject, Summary: l.Summary, Tutor: l.Tutor, Student: l.Student, Duration: l.Duration, Date: l.Date, Chat: l.Chat})
+		}
+
+		return lessons, nil
+	} else {
+		return nil, errors.New("Unauthorised, please log in")
+	}
 }
 
 // Mutation returns generated.MutationResolver implementation.

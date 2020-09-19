@@ -10,6 +10,7 @@ import (
 type Lesson struct {
 	Id       string
 	Subject  string
+	Summary  string
 	Tutor    string
 	Student  string
 	Duration int
@@ -56,8 +57,8 @@ func (l *Lesson) Update() error {
 
 	defer tx.Rollback(context.Background())
 
-	sql := `UPDATE lessons SET subject = $2, tutor = $3, student = $4, duration = $5, date = $6, chat = $7 WHERE id = $1`
-	_, err = tx.Exec(context.Background(), sql, l.Id, l.Subject, l.Tutor, l.Student, l.Duration, l.Date, l.Chat)
+	sql := `UPDATE lessons SET subject = $2, summary = $3, tutor = $4, student = $5, duration = $6, date = $7, chat = $8 WHERE id = $1`
+	_, err = tx.Exec(context.Background(), sql, l.Id, l.Subject, l.Summary, l.Tutor, l.Student, l.Duration, l.Date, l.Chat)
 
 	if err != nil {
 		return err
@@ -72,9 +73,9 @@ func (l *Lesson) Update() error {
 }
 
 func (l *Lesson) GetById(id string) error {
-	sql := `SELECT id, subject, tutor, student, duration, date, chat FROM lessons WHERE id = $1`
+	sql := `SELECT id, subject, summary, tutor, student, duration, date, chat FROM lessons WHERE id = $1`
 
-	if err := DbPool.QueryRow(context.Background(), sql, id).Scan(&l.Id, &l.Subject, &l.Tutor, &l.Student, &l.Duration, &l.Date, &l.Chat); err != nil {
+	if err := DbPool.QueryRow(context.Background(), sql, id).Scan(&l.Id, &l.Subject, &l.Summary, &l.Tutor, &l.Student, &l.Duration, &l.Date, &l.Chat); err != nil {
 		return err
 	}
 
