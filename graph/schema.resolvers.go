@@ -10,24 +10,26 @@ import (
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
 	"github.com/solderneer/axiom-backend/graph/model"
+	"github.com/solderneer/axiom-backend/utilities/auth"
 )
 
-func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStudent) (*model.Student, error) {
+func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStudent) (string, error) {
 	dbStudent := &db.Student{}
 
-	err := dbStudent.Create(input.Email, input.HashedPassword, input.ProfilePic)
+	err := dbStudent.Create(input.Email, input.Password, input.ProfilePic)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &model.Student{ID: dbStudent.Id, Email: dbStudent.Email, HashedPassword: dbStudent.HashedPassword, ProfilePic: dbStudent.ProfilePic}, nil
+	token, err := auth.GenerateToken(dbStudent.Id, r.Secret)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
 
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *queryResolver) Users(ctx context.Context) ([]model.User, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

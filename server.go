@@ -4,13 +4,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/gorilla/mux"
+
+	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph"
 	"github.com/solderneer/axiom-backend/graph/generated"
-
-	db "github.com/solderneer/axiom-backend/db"
+	"github.com/solderneer/axiom-backend/middlewares"
 )
 
 const defaultPort = "8080"
@@ -26,11 +29,24 @@ func main() {
 
 	defer db.DbPool.Close()
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	graphSrv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{Secret: "password"}}))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	r := mux.NewRouter()
+	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	r.Handle("/query", graphSrv)
+
+	// Auth middleware
+	amw := middlewares.AuthMiddleware{Secret: "password"}
+	r.Use(amw.Middleware)
+
+	httpSrv := &http.Server{
+		Handler: r,
+		Addr:    "0.0.0.0:" + port,
+		// Enforcing timeouts
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(httpSrv.ListenAndServe())
 }

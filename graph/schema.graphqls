@@ -5,7 +5,6 @@
 interface User {
   id: ID!
   email: String!
-  hashedPassword: String!
   profilePic: String!
   lessons: [Lesson]!
 }
@@ -23,7 +22,6 @@ scalar Date
 type Student implements User {
   id: ID!
   email: String!
-  hashedPassword: String!
   profilePic: String!
   lessons: [Lesson!]!
 }
@@ -31,7 +29,6 @@ type Student implements User {
 type Tutor implements User {
   id: ID!
   email: String!
-  hashedPassword: String!
   profilePic: String!
   lessons: [Lesson!]!
   hourlyRate: Int!
@@ -54,16 +51,15 @@ type Lesson {
 
 input NewStudent {
   email: String!
-  hashedPassword: String!
+  password: String!
   profilePic: String!
 }
 
 type Query {
   self: User!,
-  users: [User!]!
   lessons: [Lesson!]!
 }
 
 type Mutation {
-  createStudent(input: NewStudent!): Student!
+  createStudent(input: NewStudent!): String!
 }

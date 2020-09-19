@@ -24,32 +24,30 @@ type Lesson struct {
 }
 
 type NewStudent struct {
-	Email          string `json:"email"`
-	HashedPassword string `json:"hashedPassword"`
-	ProfilePic     string `json:"profilePic"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	ProfilePic string `json:"profilePic"`
 }
 
 type Student struct {
-	ID             string    `json:"id"`
-	Email          string    `json:"email"`
-	HashedPassword string    `json:"hashedPassword"`
-	ProfilePic     string    `json:"profilePic"`
-	Lessons        []*Lesson `json:"lessons"`
+	ID         string    `json:"id"`
+	Email      string    `json:"email"`
+	ProfilePic string    `json:"profilePic"`
+	Lessons    []*Lesson `json:"lessons"`
 }
 
 func (Student) IsUser() {}
 
 type Tutor struct {
-	ID             string     `json:"id"`
-	Email          string     `json:"email"`
-	HashedPassword string     `json:"hashedPassword"`
-	ProfilePic     string     `json:"profilePic"`
-	Lessons        []*Lesson  `json:"lessons"`
-	HourlyRate     int        `json:"hourlyRate"`
-	Bio            string     `json:"bio"`
-	Rating         float64    `json:"rating"`
-	Education      []*string  `json:"education"`
-	Subjects       []*Subject `json:"subjects"`
+	ID         string     `json:"id"`
+	Email      string     `json:"email"`
+	ProfilePic string     `json:"profilePic"`
+	Lessons    []*Lesson  `json:"lessons"`
+	HourlyRate int        `json:"hourlyRate"`
+	Bio        string     `json:"bio"`
+	Rating     float64    `json:"rating"`
+	Education  []*string  `json:"education"`
+	Subjects   []*Subject `json:"subjects"`
 }
 
 func (Tutor) IsUser() {}

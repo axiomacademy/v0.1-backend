@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/pborman/uuid"
 )
 
 type Lesson struct {
@@ -15,7 +17,15 @@ type Lesson struct {
 	Chat     string
 }
 
-func (l Lesson) Create() error {
+func (l *Lesson) Create(subject string, tutor string, student string, duration int, date time.Time) error {
+	// GENERATING UUID
+	l.Id = "l-" + uuid.New()
+	l.Subject = subject
+	l.Tutor = tutor
+	l.Student = student
+	l.Duration = duration
+	l.Date = date
+
 	tx, err := DbPool.Begin(context.Background())
 	if err != nil {
 		return err
@@ -38,7 +48,7 @@ func (l Lesson) Create() error {
 	return nil
 }
 
-func (l Lesson) Update() error {
+func (l *Lesson) Update() error {
 	tx, err := DbPool.Begin(context.Background())
 	if err != nil {
 		return err
@@ -61,7 +71,7 @@ func (l Lesson) Update() error {
 	return nil
 }
 
-func (l Lesson) GetById(id string) error {
+func (l *Lesson) GetById(id string) error {
 	sql := `SELECT id, subject, tutor, student, duration, date, chat FROM lessons WHERE id = $1`
 
 	if err := DbPool.QueryRow(context.Background(), sql, id).Scan(&l.Id, &l.Subject, &l.Tutor, &l.Student, &l.Duration, &l.Date, &l.Chat); err != nil {

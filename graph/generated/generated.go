@@ -62,37 +62,33 @@ type ComplexityRoot struct {
 	Query struct {
 		Lessons func(childComplexity int) int
 		Self    func(childComplexity int) int
-		Users   func(childComplexity int) int
 	}
 
 	Student struct {
-		Email          func(childComplexity int) int
-		HashedPassword func(childComplexity int) int
-		ID             func(childComplexity int) int
-		Lessons        func(childComplexity int) int
-		ProfilePic     func(childComplexity int) int
+		Email      func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Lessons    func(childComplexity int) int
+		ProfilePic func(childComplexity int) int
 	}
 
 	Tutor struct {
-		Bio            func(childComplexity int) int
-		Education      func(childComplexity int) int
-		Email          func(childComplexity int) int
-		HashedPassword func(childComplexity int) int
-		HourlyRate     func(childComplexity int) int
-		ID             func(childComplexity int) int
-		Lessons        func(childComplexity int) int
-		ProfilePic     func(childComplexity int) int
-		Rating         func(childComplexity int) int
-		Subjects       func(childComplexity int) int
+		Bio        func(childComplexity int) int
+		Education  func(childComplexity int) int
+		Email      func(childComplexity int) int
+		HourlyRate func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Lessons    func(childComplexity int) int
+		ProfilePic func(childComplexity int) int
+		Rating     func(childComplexity int) int
+		Subjects   func(childComplexity int) int
 	}
 }
 
 type MutationResolver interface {
-	CreateStudent(ctx context.Context, input model.NewStudent) (*model.Student, error)
+	CreateStudent(ctx context.Context, input model.NewStudent) (string, error)
 }
 type QueryResolver interface {
 	Self(ctx context.Context) (model.User, error)
-	Users(ctx context.Context) ([]model.User, error)
 	Lessons(ctx context.Context) ([]*model.Lesson, error)
 }
 
@@ -193,26 +189,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Self(childComplexity), true
 
-	case "Query.users":
-		if e.complexity.Query.Users == nil {
-			break
-		}
-
-		return e.complexity.Query.Users(childComplexity), true
-
 	case "Student.email":
 		if e.complexity.Student.Email == nil {
 			break
 		}
 
 		return e.complexity.Student.Email(childComplexity), true
-
-	case "Student.hashedPassword":
-		if e.complexity.Student.HashedPassword == nil {
-			break
-		}
-
-		return e.complexity.Student.HashedPassword(childComplexity), true
 
 	case "Student.id":
 		if e.complexity.Student.ID == nil {
@@ -255,13 +237,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Tutor.Email(childComplexity), true
-
-	case "Tutor.hashedPassword":
-		if e.complexity.Tutor.HashedPassword == nil {
-			break
-		}
-
-		return e.complexity.Tutor.HashedPassword(childComplexity), true
 
 	case "Tutor.hourlyRate":
 		if e.complexity.Tutor.HourlyRate == nil {
@@ -376,7 +351,6 @@ var sources = []*ast.Source{
 interface User {
   id: ID!
   email: String!
-  hashedPassword: String!
   profilePic: String!
   lessons: [Lesson]!
 }
@@ -394,7 +368,6 @@ scalar Date
 type Student implements User {
   id: ID!
   email: String!
-  hashedPassword: String!
   profilePic: String!
   lessons: [Lesson!]!
 }
@@ -402,7 +375,6 @@ type Student implements User {
 type Tutor implements User {
   id: ID!
   email: String!
-  hashedPassword: String!
   profilePic: String!
   lessons: [Lesson!]!
   hourlyRate: Int!
@@ -425,18 +397,17 @@ type Lesson {
 
 input NewStudent {
   email: String!
-  hashedPassword: String!
+  password: String!
   profilePic: String!
 }
 
 type Query {
   self: User!,
-  users: [User!]!
   lessons: [Lesson!]!
 }
 
 type Mutation {
-  createStudent(input: NewStudent!): Student!
+  createStudent(input: NewStudent!): String!
 }
 `, BuiltIn: false},
 }
@@ -819,9 +790,9 @@ func (ec *executionContext) _Mutation_createStudent(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Student)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNStudent2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐStudent(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_self(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -856,40 +827,6 @@ func (ec *executionContext) _Query_self(ctx context.Context, field graphql.Colle
 	res := resTmp.(model.User)
 	fc.Result = res
 	return ec.marshalNUser2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Users(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]model.User)
-	fc.Result = res
-	return ec.marshalNUser2ᚕgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_lessons(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1063,40 +1000,6 @@ func (ec *executionContext) _Student_email(ctx context.Context, field graphql.Co
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Student_hashedPassword(ctx context.Context, field graphql.CollectedField, obj *model.Student) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Student",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.HashedPassword, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Student_profilePic(ctx context.Context, field graphql.CollectedField, obj *model.Student) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1217,40 +1120,6 @@ func (ec *executionContext) _Tutor_email(ctx context.Context, field graphql.Coll
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Email, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Tutor_hashedPassword(ctx context.Context, field graphql.CollectedField, obj *model.Tutor) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Tutor",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.HashedPassword, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2574,11 +2443,11 @@ func (ec *executionContext) unmarshalInputNewStudent(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
-		case "hashedPassword":
+		case "password":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("hashedPassword"))
-			it.HashedPassword, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2746,20 +2615,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "users":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_users(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "lessons":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -2810,11 +2665,6 @@ func (ec *executionContext) _Student(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "hashedPassword":
-			out.Values[i] = ec._Student_hashedPassword(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "profilePic":
 			out.Values[i] = ec._Student_profilePic(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -2854,11 +2704,6 @@ func (ec *executionContext) _Tutor(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "email":
 			out.Values[i] = ec._Tutor_email(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "hashedPassword":
-			out.Values[i] = ec._Tutor_hashedPassword(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3325,10 +3170,6 @@ func (ec *executionContext) marshalNString2ᚕᚖstring(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) marshalNStudent2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐStudent(ctx context.Context, sel ast.SelectionSet, v model.Student) graphql.Marshaler {
-	return ec._Student(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNStudent2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐStudent(ctx context.Context, sel ast.SelectionSet, v *model.Student) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -3425,43 +3266,6 @@ func (ec *executionContext) marshalNUser2githubᚗcomᚋsolderneerᚋaxiomᚑbac
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNUser2ᚕgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []model.User) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNUser2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐUser(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

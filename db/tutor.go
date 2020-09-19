@@ -2,6 +2,9 @@ package db
 
 import (
 	"context"
+
+	"github.com/pborman/uuid"
+	"github.com/solderneer/axiom-backend/utilities/auth"
 )
 
 type Tutor struct {
@@ -16,7 +19,23 @@ type Tutor struct {
 	Subjects       []string
 }
 
-func (t Tutor) Create() error {
+func (t *Tutor) Create(email string, password string, profile_pic string, hourly_rate int, rating int) error {
+
+	// GENERATING UUID
+	t.Id = "t:" + uuid.New()
+	t.Email = email
+
+	// Generating pasword hash
+	hashedPassword, err := auth.HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	t.HashedPassword = hashedPassword
+	t.ProfilePic = profile_pic
+	t.HourlyRate = hourly_rate
+	t.Rating = rating
+
 	tx, err := DbPool.Begin(context.Background())
 	if err != nil {
 		return err
@@ -39,7 +58,7 @@ func (t Tutor) Create() error {
 	return nil
 }
 
-func (t Tutor) Update() error {
+func (t *Tutor) Update() error {
 	tx, err := DbPool.Begin(context.Background())
 	if err != nil {
 		return err
@@ -62,7 +81,7 @@ func (t Tutor) Update() error {
 	return nil
 }
 
-func (t Tutor) GetById(id string) error {
+func (t *Tutor) GetById(id string) error {
 	sql := `SELECT id, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE id = $1`
 
 	if err := DbPool.QueryRow(context.Background(), sql, id).Scan(
@@ -81,7 +100,7 @@ func (t Tutor) GetById(id string) error {
 	return nil
 }
 
-func (t Tutor) GetLessons() ([]Lesson, error) {
+func (t *Tutor) GetLessons() ([]Lesson, error) {
 	sql := `SELECT id, subject, tutor, student, duration, date, chat FROM lessons WHERE tutor = $1`
 
 	var lessons []Lesson

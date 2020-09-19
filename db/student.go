@@ -2,7 +2,9 @@ package db
 
 import (
 	"context"
+
 	"github.com/pborman/uuid"
+	"github.com/solderneer/axiom-backend/utilities/auth"
 )
 
 type Student struct {
@@ -12,12 +14,19 @@ type Student struct {
 	ProfilePic     string
 }
 
-func (s *Student) Create(email string, hashed_password string, profile_pic string) error {
+func (s *Student) Create(email string, password string, profile_pic string) error {
 
 	// GENERATING UUID
-	s.Id = "s-" + uuid.New()
+	s.Id = "s:" + uuid.New()
 	s.Email = email
-	s.HashedPassword = hashed_password
+
+	// Generating pasword hash
+	hashedPassword, err := auth.HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	s.HashedPassword = hashedPassword
 	s.ProfilePic = profile_pic
 
 	tx, err := DbPool.Begin(context.Background())
@@ -42,7 +51,7 @@ func (s *Student) Create(email string, hashed_password string, profile_pic strin
 	return nil
 }
 
-func (s Student) Update() error {
+func (s *Student) Update() error {
 	tx, err := DbPool.Begin(context.Background())
 	if err != nil {
 		return err
@@ -65,7 +74,7 @@ func (s Student) Update() error {
 	return nil
 }
 
-func (s Student) GetById(id string) error {
+func (s *Student) GetById(id string) error {
 	sql := `SELECT id, email, hashed_password, profile_pic FROM students WHERE id = $1`
 
 	if err := DbPool.QueryRow(context.Background(), sql, id).Scan(&s.Id, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
@@ -75,7 +84,7 @@ func (s Student) GetById(id string) error {
 	return nil
 }
 
-func (s Student) GetLessons() ([]Lesson, error) {
+func (s *Student) GetLessons() ([]Lesson, error) {
 	sql := `SELECT id, subject, tutor, student, duration, date, chat FROM lessons WHERE student = $1`
 
 	var lessons []Lesson
