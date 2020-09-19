@@ -4,20 +4,31 @@
 
 interface User {
   id: ID!
+  username: String!
+  firstName: String!
+  lastName: String!
   email: String!
   profilePic: String!
 }
 
 scalar Date
 
+############################## TYPES #####################################################
+
 type Student implements User {
   id: ID!
+  username: String!
+  firstName: String!
+  lastName: String!
   email: String!
   profilePic: String!
 }
 
 type Tutor implements User {
   id: ID!
+  username: String!
+  firstName: String!
+  lastName: String!
   email: String!
   profilePic: String!
   hourlyRate: Int!
@@ -38,13 +49,21 @@ type Lesson {
   chat: String!
 }
 
+#################################### INPUTS ################################################
+
 input NewStudent {
+  username: String!
+  firstName: String!
+  lastName: String!
   email: String!
   password: String!
   profilePic: String!
 }
 
 input NewTutor {
+  username: String!
+  firstName: String!
+  lastName: String!
   email: String!
   password: String!
   profilePic: String!
@@ -54,21 +73,24 @@ input NewTutor {
   subjects: [String!]!
 }
 
-input NewLesson {
-  subject: String!
-  tutor: String!
-  student: String!
-  duration: Int!
-  date: Date!
+input LoginInfo {
+  username: String!
+  password: String!
 }
+
+############################### QUERIES ####################################################
 
 type Query {
   self: User!,
   lessons: [Lesson!]!
 }
 
+############################### MUTATIONS ####################################################
+
 type Mutation {
   createStudent(input: NewStudent!): String!
+  loginStudent(input: LoginInfo!): String!
   createTutor(input: NewTutor!): String!
-  createLesson(input: NewLesson!): String!
+  loginTutor(input: LoginInfo!): String!
+  refreshToken: String!
 }

@@ -6,11 +6,13 @@ import (
 	"github.com/jackc/pgtype"
 	"github.com/pborman/uuid"
 	"github.com/solderneer/axiom-backend/graph/model"
-	"github.com/solderneer/axiom-backend/utilities/auth"
 )
 
 type Tutor struct {
 	Id             string
+	Username       string
+	FirstName      string
+	LastName       string
 	Email          string
 	HashedPassword string
 	ProfilePic     string
@@ -21,18 +23,14 @@ type Tutor struct {
 	Subjects       []string
 }
 
-func (t *Tutor) Create(email string, password string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string) error {
+func (t *Tutor) Create(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string) error {
 
 	// GENERATING UUID
 	t.Id = "t:" + uuid.New()
+	t.Username = username
+	t.FirstName = firstName
+	t.LastName = lastName
 	t.Email = email
-
-	// Generating pasword hash
-	hashedPassword, err := auth.HashPassword(password)
-	if err != nil {
-		return err
-	}
-
 	t.HashedPassword = hashedPassword
 	t.ProfilePic = profile_pic
 	t.HourlyRate = hourly_rate
@@ -48,8 +46,8 @@ func (t *Tutor) Create(email string, password string, profile_pic string, hourly
 
 	defer tx.Rollback(context.Background())
 
-	sql := `INSERT INTO tutors (id, email, hashed_password, profile_pic, hourly_rate, rating, bio, education, subjects) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-	_, err = tx.Exec(context.Background(), sql, t.Id, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Rating, t.Bio, t.Education, t.Subjects)
+	sql := `INSERT INTO tutors (id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, rating, bio, education, subjects) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	_, err = tx.Exec(context.Background(), sql, t.Id, t.Username, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Rating, t.Bio, t.Education, t.Subjects)
 
 	if err != nil {
 		return err
@@ -71,8 +69,8 @@ func (t *Tutor) Update() error {
 
 	defer tx.Rollback(context.Background())
 
-	sql := `UPDATE tutors SET email = $2, hashed_password = $3, profile_pic = $4, hourly_rate = $5, bio = $6, rating = $7, education = $8, subjects = $9 WHERE id = $1`
-	_, err = tx.Exec(context.Background(), sql, t.Id, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Bio, t.Rating, t.Education, t.Subjects)
+	sql := `UPDATE tutors SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, hourly_rate = $7, bio = $8, rating = $9, education = $10, subjects = $11 WHERE id = $1`
+	_, err = tx.Exec(context.Background(), sql, t.Id, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Bio, t.Rating, t.Education, t.Subjects)
 
 	if err != nil {
 		return err
@@ -87,12 +85,41 @@ func (t *Tutor) Update() error {
 }
 
 func (t *Tutor) GetById(id string) error {
-	sql := `SELECT id, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE id = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE id = $1`
 
 	var subjects pgtype.EnumArray
 
 	if err := DbPool.QueryRow(context.Background(), sql, id).Scan(
 		&t.Id,
+		&t.Username,
+		&t.FirstName,
+		&t.LastName,
+		&t.Email,
+		&t.HashedPassword,
+		&t.ProfilePic,
+		&t.HourlyRate,
+		&t.Bio,
+		&t.Rating,
+		&t.Education,
+		&subjects); err != nil {
+		return err
+	}
+
+	// Populating subjects separately because it is an enum array
+	subjects.AssignTo(&t.Subjects)
+	return nil
+}
+
+func (t *Tutor) GetByUsername(username string) error {
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE username = $1`
+
+	var subjects pgtype.EnumArray
+
+	if err := DbPool.QueryRow(context.Background(), sql, username).Scan(
+		&t.Id,
+		&t.Username,
+		&t.FirstName,
+		&t.LastName,
 		&t.Email,
 		&t.HashedPassword,
 		&t.ProfilePic,
@@ -140,5 +167,5 @@ func (t *Tutor) GetLessons() ([]Lesson, error) {
 }
 
 func (t *Tutor) ToModel() model.Tutor {
-	return model.Tutor{ID: t.Id, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: t.Subjects}
+	return model.Tutor{ID: t.Id, Username: t.Username, FirstName: t.FirstName, LastName: t.LastName, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: t.Subjects}
 }

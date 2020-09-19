@@ -17,21 +17,24 @@ type Lesson struct {
 	Chat     string   `json:"chat"`
 }
 
-type NewLesson struct {
-	Subject  string `json:"subject"`
-	Tutor    string `json:"tutor"`
-	Student  string `json:"student"`
-	Duration int    `json:"duration"`
-	Date     string `json:"date"`
+type LoginInfo struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type NewStudent struct {
+	Username   string `json:"username"`
+	FirstName  string `json:"firstName"`
+	LastName   string `json:"lastName"`
 	Email      string `json:"email"`
 	Password   string `json:"password"`
 	ProfilePic string `json:"profilePic"`
 }
 
 type NewTutor struct {
+	Username   string   `json:"username"`
+	FirstName  string   `json:"firstName"`
+	LastName   string   `json:"lastName"`
 	Email      string   `json:"email"`
 	Password   string   `json:"password"`
 	ProfilePic string   `json:"profilePic"`
@@ -43,6 +46,9 @@ type NewTutor struct {
 
 type Student struct {
 	ID         string `json:"id"`
+	Username   string `json:"username"`
+	FirstName  string `json:"firstName"`
+	LastName   string `json:"lastName"`
 	Email      string `json:"email"`
 	ProfilePic string `json:"profilePic"`
 }
@@ -51,6 +57,9 @@ func (Student) IsUser() {}
 
 type Tutor struct {
 	ID         string   `json:"id"`
+	Username   string   `json:"username"`
+	FirstName  string   `json:"firstName"`
+	LastName   string   `json:"lastName"`
 	Email      string   `json:"email"`
 	ProfilePic string   `json:"profilePic"`
 	HourlyRate int      `json:"hourlyRate"`
