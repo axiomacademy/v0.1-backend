@@ -89,7 +89,6 @@ input LoginInfo {
 type Query {
   self: User!,
   lessons: [Lesson!]!
-  heartbeat(input: String!): Heartbeat!
 }
 
 ############################### MUTATIONS ####################################################
