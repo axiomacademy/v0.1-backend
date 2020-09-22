@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/solderneer/axiom-backend/db"
+	"github.com/solderneer/axiom-backend/heartbeat"
 	"github.com/solderneer/axiom-backend/graph"
 	"github.com/solderneer/axiom-backend/graph/generated"
 	"github.com/solderneer/axiom-backend/middlewares"
@@ -28,6 +29,10 @@ func main() {
 	db.Migrate()
 
 	defer db.DbPool.Close()
+
+	heartbeatDir := os.Getenv("HEARTBEAT_DIR") // Defaults to in-memory otherwise
+	heartbeat.InitHeartbeat(heartbeatDir)
+	defer heartbeat.Close()
 
 	graphSrv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{Secret: "password"}}))
 

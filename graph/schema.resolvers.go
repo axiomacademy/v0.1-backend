@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"github.com/solderneer/axiom-backend/db"
+	"github.com/solderneer/axiom-backend/heartbeat"
 	"github.com/solderneer/axiom-backend/graph/generated"
 	"github.com/solderneer/axiom-backend/graph/model"
 	"github.com/solderneer/axiom-backend/utilities/auth"
@@ -129,6 +130,31 @@ func (r *mutationResolver) RefreshToken(ctx context.Context) (string, error) {
 	return token, nil
 }
 
+func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Heartbeat) (string, error) {
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if utype != "t" {
+		return "", errors.New("Invalid user type for Heartbeat")
+	}
+
+	t := u.(db.Tutor)
+
+	err = heartbeat.SetHeartbeat(t.Id, input)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := auth.GenerateToken(t.Id, r.Secret)
+	if err != nil {
+		return "", errors.New("Error generating token")
+	}
+
+	return token, nil
+}
+
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
@@ -177,6 +203,15 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	}
 
 	return lessons, nil
+}
+
+func (r *queryResolver) Heartbeat(ctx context.Context, input string) (model.Heartbeat, error) {
+	h, err := heartbeat.GetHeartbeat(input)
+	if err != nil {
+		return "", err
+	}
+
+	return h, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
