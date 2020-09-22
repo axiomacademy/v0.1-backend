@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
@@ -129,6 +130,10 @@ func (r *mutationResolver) RefreshToken(ctx context.Context) (string, error) {
 	return token, nil
 }
 
+func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Heartbeat) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
@@ -177,6 +182,10 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	}
 
 	return lessons, nil
+}
+
+func (r *queryResolver) Heartbeat(ctx context.Context, input string) (model.Heartbeat, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.

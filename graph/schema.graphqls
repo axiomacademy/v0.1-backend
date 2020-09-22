@@ -13,6 +13,12 @@ interface User {
 
 scalar Date
 
+enum Heartbeat {
+  ONLINE
+  ACTIVE
+  OFFLINE
+}
+
 ############################## TYPES #####################################################
 
 type Student implements User {
@@ -83,6 +89,7 @@ input LoginInfo {
 type Query {
   self: User!,
   lessons: [Lesson!]!
+  heartbeat(input: String!): Heartbeat!
 }
 
 ############################### MUTATIONS ####################################################
@@ -93,4 +100,5 @@ type Mutation {
   createTutor(input: NewTutor!): String!
   loginTutor(input: LoginInfo!): String!
   refreshToken: String!
+  updateHeartbeat(input: Heartbeat!): String!
 }
