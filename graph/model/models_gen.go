@@ -44,6 +44,11 @@ type NewTutor struct {
 	Subjects   []string `json:"subjects"`
 }
 
+type Notification struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
 type Student struct {
 	ID         string `json:"id"`
 	Username   string `json:"username"`
