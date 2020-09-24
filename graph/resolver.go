@@ -5,11 +5,11 @@ package graph
 // It serves as dependency injection for your app, add any dependencies you require here.
 import (
 	"github.com/solderneer/axiom-backend/graph/model"
+	"github.com/solderneer/axiom-backend/services/notifs"
 	"sync"
 )
 
 type Resolver struct {
 	Secret string
-	nchans map[string]chan *model.Notification
-	mutex  sync.Mutex
+	ns     *NotifService
 }
