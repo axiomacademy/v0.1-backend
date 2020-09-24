@@ -11,5 +11,5 @@ import (
 
 type Resolver struct {
 	Secret string
-	ns     *NotifService
+	Ns     *notifs.NotifService
 }

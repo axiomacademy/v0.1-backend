@@ -6,10 +6,10 @@ import (
 )
 
 type NotifService struct {
-	nchans map[string]chan *model.Notification
-	mutex  sync.Mutex
+	Nchans map[string]chan *model.Notification
+	Nmutex sync.Mutex
 }
 
-func (ns *NotifService) SendNotification() {
-
+func (ns *NotifService) SendNotification(n model.Notification, uid string) {
+	ns.Nchans[uid] <- &n
 }
