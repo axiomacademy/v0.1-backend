@@ -130,7 +130,7 @@ func (r *mutationResolver) RefreshToken(ctx context.Context) (string, error) {
 	return token, nil
 }
 
-func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Heartbeat) (string, error) {
+func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.HeartbeatStatus) (string, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
 		return "", err

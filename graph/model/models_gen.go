@@ -12,6 +12,11 @@ type User interface {
 	IsUser()
 }
 
+type Heartbeat struct {
+	Status   HeartbeatStatus `json:"status"`
+	LastSeen int             `json:"lastSeen"`
+}
+
 type Lesson struct {
 	ID       string   `json:"id"`
 	Subject  string   `json:"subject"`
@@ -77,45 +82,45 @@ type Tutor struct {
 
 func (Tutor) IsUser() {}
 
-type Heartbeat string
+type HeartbeatStatus string
 
 const (
-	HeartbeatOnline  Heartbeat = "ONLINE"
-	HeartbeatActive  Heartbeat = "ACTIVE"
-	HeartbeatOffline Heartbeat = "OFFLINE"
+	HeartbeatStatusOnline  HeartbeatStatus = "ONLINE"
+	HeartbeatStatusActive  HeartbeatStatus = "ACTIVE"
+	HeartbeatStatusOffline HeartbeatStatus = "OFFLINE"
 )
 
-var AllHeartbeat = []Heartbeat{
-	HeartbeatOnline,
-	HeartbeatActive,
-	HeartbeatOffline,
+var AllHeartbeatStatus = []HeartbeatStatus{
+	HeartbeatStatusOnline,
+	HeartbeatStatusActive,
+	HeartbeatStatusOffline,
 }
 
-func (e Heartbeat) IsValid() bool {
+func (e HeartbeatStatus) IsValid() bool {
 	switch e {
-	case HeartbeatOnline, HeartbeatActive, HeartbeatOffline:
+	case HeartbeatStatusOnline, HeartbeatStatusActive, HeartbeatStatusOffline:
 		return true
 	}
 	return false
 }
 
-func (e Heartbeat) String() string {
+func (e HeartbeatStatus) String() string {
 	return string(e)
 }
 
-func (e *Heartbeat) UnmarshalGQL(v interface{}) error {
+func (e *HeartbeatStatus) UnmarshalGQL(v interface{}) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = Heartbeat(str)
+	*e = HeartbeatStatus(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Heartbeat", str)
+		return fmt.Errorf("%s is not a valid HeartbeatStatus", str)
 	}
 	return nil
 }
 
-func (e Heartbeat) MarshalGQL(w io.Writer) {
+func (e HeartbeatStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

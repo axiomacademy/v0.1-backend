@@ -13,7 +13,7 @@ interface User {
 
 scalar Date
 
-enum Heartbeat {
+enum HeartbeatStatus {
   ONLINE
   ACTIVE
   OFFLINE
@@ -53,6 +53,11 @@ type Lesson {
   duration: Int!
   date: Date!
   chat: String!
+}
+
+type Heartbeat {
+  status: HeartbeatStatus!
+  lastSeen: Int!
 }
 
 #################################### INPUTS ################################################
@@ -99,5 +104,5 @@ type Mutation {
   createTutor(input: NewTutor!): String!
   loginTutor(input: LoginInfo!): String!
   refreshToken: String!
-  updateHeartbeat(input: Heartbeat!): String!
+  updateHeartbeat(input: HeartbeatStatus!): String!
 }
