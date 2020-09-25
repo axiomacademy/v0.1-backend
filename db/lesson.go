@@ -19,7 +19,23 @@ type Lesson struct {
 	Chat     string
 }
 
-func (l *Lesson) Create(subject string, tutor string, student string, duration int, date time.Time) error {
+func (r *Repository) ToLessonModel(l Lesson) model.Lesson {
+	s := Student{}
+	t := Tutor{}
+
+	r.GetStudentById(l.Student)
+	r.GetTutorById(l.Tutor)
+
+	rs := r.ToStudentModel(s)
+	rt := r.ToTutorModel(t)
+
+	return model.Lesson{ID: l.Id, Subject: l.Subject, Summary: l.Summary, Tutor: &rt, Student: &rs, Duration: l.Duration, Date: l.Date.String(), Chat: l.Chat}
+}
+
+func (r *Repository) CreateLesson(subject string, tutor string, student string, duration int, date time.Time) (Lesson, error) {
+
+	var l Lesson
+
 	// GENERATING UUID
 	l.Id = "l-" + uuid.New()
 	l.Subject = subject
@@ -28,9 +44,9 @@ func (l *Lesson) Create(subject string, tutor string, student string, duration i
 	l.Duration = duration
 	l.Date = date
 
-	tx, err := DbPool.Begin(context.Background())
+	tx, err := r.DbPool.Begin(context.Background())
 	if err != nil {
-		return err
+		return l, err
 	}
 
 	defer tx.Rollback(context.Background())
@@ -39,19 +55,19 @@ func (l *Lesson) Create(subject string, tutor string, student string, duration i
 	_, err = tx.Exec(context.Background(), sql, l.Id, l.Subject, l.Tutor, l.Student, l.Duration, l.Date)
 
 	if err != nil {
-		return err
+		return l, err
 	}
 
 	err = tx.Commit(context.Background())
 	if err != nil {
-		return err
+		return l, err
 	}
 
-	return nil
+	return l, nil
 }
 
-func (l *Lesson) Update() error {
-	tx, err := DbPool.Begin(context.Background())
+func (r *Repository) UpdateLesson(l Lesson) error {
+	tx, err := r.DbPool.Begin(context.Background())
 	if err != nil {
 		return err
 	}
@@ -73,25 +89,13 @@ func (l *Lesson) Update() error {
 	return nil
 }
 
-func (l *Lesson) GetById(id string) error {
+func (r *Repository) GetLessonById(id string) (Lesson, error) {
+	var l Lesson
 	sql := `SELECT id, subject, summary, tutor, student, duration, date, chat FROM lessons WHERE id = $1`
 
-	if err := DbPool.QueryRow(context.Background(), sql, id).Scan(&l.Id, &l.Subject, &l.Summary, &l.Tutor, &l.Student, &l.Duration, &l.Date, &l.Chat); err != nil {
-		return err
+	if err := r.DbPool.QueryRow(context.Background(), sql, id).Scan(&l.Id, &l.Subject, &l.Summary, &l.Tutor, &l.Student, &l.Duration, &l.Date, &l.Chat); err != nil {
+		return l, err
 	}
 
-	return nil
-}
-
-func (l *Lesson) ToModel() model.Lesson {
-	s := Student{}
-	t := Tutor{}
-
-	s.GetById(l.Student)
-	t.GetById(l.Tutor)
-
-	rs := s.ToModel()
-	rt := t.ToModel()
-
-	return model.Lesson{ID: l.Id, Subject: l.Subject, Summary: l.Summary, Tutor: &rt, Student: &rs, Duration: l.Duration, Date: l.Date.String(), Chat: l.Chat}
+	return l, nil
 }

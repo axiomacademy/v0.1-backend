@@ -28,10 +28,11 @@ func main() {
 		port = defaultPort
 	}
 
-	db.InitDb()
-	db.Migrate()
+	repo := db.Repository{}
+	repo.InitDb()
+	repo.Migrate()
 
-	defer db.DbPool.Close()
+	defer repo.DbPool.Close()
 
 	// Initialising all services
 	ns := notifs.NotifService{Nchans: map[string]chan *model.Notification{}, Nmutex: sync.Mutex{}}
@@ -39,6 +40,7 @@ func main() {
 	// Binding services to resolver
 	resolver := graph.Resolver{
 		Secret: "password",
+		Repo:   &repo,
 		Ns:     &ns,
 	}
 

@@ -17,7 +17,13 @@ type Student struct {
 	ProfilePic     string
 }
 
-func (s *Student) Create(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string) error {
+func (r *Repository) ToStudentModel(s Student) model.Student {
+	return model.Student{ID: s.Id, Username: s.Username, FirstName: s.FirstName, LastName: s.LastName, Email: s.Email, ProfilePic: s.ProfilePic}
+}
+
+func (r *Repository) CreateStudent(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string) (Student, error) {
+
+	var s Student
 
 	// GENERATING UUID
 	s.Id = "s:" + uuid.New()
@@ -28,9 +34,9 @@ func (s *Student) Create(username string, firstName string, lastName string, ema
 	s.HashedPassword = hashedPassword
 	s.ProfilePic = profile_pic
 
-	tx, err := DbPool.Begin(context.Background())
+	tx, err := r.DbPool.Begin(context.Background())
 	if err != nil {
-		return err
+		return s, err
 	}
 
 	defer tx.Rollback(context.Background())
@@ -39,19 +45,19 @@ func (s *Student) Create(username string, firstName string, lastName string, ema
 	_, err = tx.Exec(context.Background(), sql, s.Id, s.Username, s.FirstName, s.LastName, s.Email, s.HashedPassword, s.ProfilePic)
 
 	if err != nil {
-		return err
+		return s, err
 	}
 
 	err = tx.Commit(context.Background())
 	if err != nil {
-		return err
+		return s, err
 	}
 
-	return nil
+	return s, nil
 }
 
-func (s *Student) Update() error {
-	tx, err := DbPool.Begin(context.Background())
+func (r *Repository) UpdateStudent(s Student) error {
+	tx, err := r.DbPool.Begin(context.Background())
 	if err != nil {
 		return err
 	}
@@ -73,32 +79,38 @@ func (s *Student) Update() error {
 	return nil
 }
 
-func (s *Student) GetById(id string) error {
+func (r *Repository) GetStudentById(id string) (Student, error) {
+
+	var s Student
+
 	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic FROM students WHERE id = $1`
 
-	if err := DbPool.QueryRow(context.Background(), sql, id).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
-		return err
+	if err := r.DbPool.QueryRow(context.Background(), sql, id).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
+		return s, err
 	}
 
-	return nil
+	return s, nil
 }
 
-func (s *Student) GetByUsername(username string) error {
+func (r *Repository) GetStudentByUsername(username string) (Student, error) {
+
+	var s Student
+
 	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic FROM students WHERE username = $1`
 
-	if err := DbPool.QueryRow(context.Background(), sql, username).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
-		return err
+	if err := r.DbPool.QueryRow(context.Background(), sql, username).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
+		return s, err
 	}
 
-	return nil
+	return s, nil
 }
 
-func (s *Student) GetLessons() ([]Lesson, error) {
+func (r *Repository) GetStudentLessons(sid string) ([]Lesson, error) {
 	sql := `SELECT id, subject, tutor, student, duration, date, chat FROM lessons WHERE student = $1`
 
 	var lessons []Lesson
 
-	rows, err := DbPool.Query(context.Background(), sql, s.Id)
+	rows, err := r.DbPool.Query(context.Background(), sql, sid)
 	if err != nil {
 		return nil, err
 	}
@@ -121,8 +133,4 @@ func (s *Student) GetLessons() ([]Lesson, error) {
 	}
 
 	return lessons, nil
-}
-
-func (s *Student) ToModel() model.Student {
-	return model.Student{ID: s.Id, Username: s.Username, FirstName: s.FirstName, LastName: s.LastName, Email: s.Email, ProfilePic: s.ProfilePic}
 }

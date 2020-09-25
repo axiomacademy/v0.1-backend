@@ -14,7 +14,6 @@ import (
 )
 
 func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStudent) (string, error) {
-	s := &db.Student{}
 
 	// Hashing password
 	hashedPassword, err := auth.HashPassword(input.Password)
@@ -22,7 +21,7 @@ func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStu
 		return "", errors.New("Error hashing password")
 	}
 
-	err = s.Create(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic)
+	s, err := r.Repo.CreateStudent(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic)
 	if err != nil {
 		return "", err
 	}
@@ -36,9 +35,8 @@ func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStu
 }
 
 func (r *mutationResolver) LoginStudent(ctx context.Context, input model.LoginInfo) (string, error) {
-	s := &db.Student{}
 
-	err := s.GetByUsername(input.Username)
+	s, err := r.Repo.GetStudentByUsername(input.Username)
 	if err != nil {
 		return "", errors.New("Invalid username")
 	}
@@ -57,7 +55,6 @@ func (r *mutationResolver) LoginStudent(ctx context.Context, input model.LoginIn
 }
 
 func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor) (string, error) {
-	t := &db.Tutor{}
 
 	// Hashing password
 	hashedPassword, err := auth.HashPassword(input.Password)
@@ -66,7 +63,7 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 	}
 
 	// DEFAULT RATING IS 3
-	err = t.Create(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, input.Subjects)
+	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, input.Subjects)
 	if err != nil {
 		return "", err
 	}
@@ -80,9 +77,8 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 }
 
 func (r *mutationResolver) LoginTutor(ctx context.Context, input model.LoginInfo) (string, error) {
-	t := &db.Tutor{}
 
-	err := t.GetByUsername(input.Username)
+	t, err := r.Repo.GetTutorByUsername(input.Username)
 	if err != nil {
 		return "", errors.New("Invalid username")
 	}
@@ -137,10 +133,10 @@ func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 
 	if utype == "s" {
 		s := u.(db.Student)
-		return s.ToModel(), nil
+		return r.Repo.ToStudentModel(s), nil
 	} else if utype == "t" {
 		t := u.(db.Tutor)
-		return t.ToModel(), nil
+		return r.Repo.ToTutorModel(t), nil
 	} else {
 		return nil, errors.New("Unauthorised, please log in")
 	}
@@ -155,13 +151,13 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	var dbLessons []db.Lesson
 	if utype == "s" {
 		s := u.(db.Student)
-		dbLessons, err = s.GetLessons()
+		dbLessons, err = r.Repo.GetStudentLessons(s.Id)
 		if err != nil {
 			return nil, err
 		}
 	} else if utype == "t" {
 		t := u.(db.Tutor)
-		dbLessons, err = t.GetLessons()
+		dbLessons, err = r.Repo.GetTutorLessons(t.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +168,7 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	// Convert dbLessons to gql Lesson Type
 	var lessons []*model.Lesson
 	for _, l := range dbLessons {
-		rl := l.ToModel()
+		rl := r.Repo.ToLessonModel(l)
 		lessons = append(lessons, &rl)
 	}
 

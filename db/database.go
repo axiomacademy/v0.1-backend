@@ -13,20 +13,21 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-var DbPool *pgxpool.Pool
+type Repository struct {
+	DbPool *pgxpool.Pool
+}
 
-func InitDb() {
-	dbpool, err := pgxpool.Connect(context.Background(), "postgresql://postgres:axiom@127.0.0.1:5432/postgres")
+func (r *Repository) InitDb() {
+	var err error
+	r.DbPool, err = pgxpool.Connect(context.Background(), "postgresql://postgres:axiom@127.0.0.1:5432/postgres")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)
 	}
-
-	DbPool = dbpool
 }
 
 // TODO: Reuse the DBPool after typecasting pgxpool.Poor into *sql.DB using the pgx/stdlib library
-func Migrate() {
+func (r *Repository) Migrate() {
 	m, err := migrate.New(
 		"file://db/migrations",
 		"postgresql://postgres:axiom@127.0.0.1:5432/postgres?sslmode=disable")

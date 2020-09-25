@@ -13,16 +13,16 @@ import (
 func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {
 	// Creating the channel
 	nchan := make(chan *model.Notification, 1)
-	r.ns.mutex.Lock()
-	r.ns.nchans[user] = nchan
-	r.ns.mutex.Unlock()
+	r.Ns.Nmutex.Lock()
+	r.Ns.Nchans[user] = nchan
+	r.Ns.Nmutex.Unlock()
 
 	// Delete channel when done
 	go func() {
 		<-ctx.Done()
-		r.ns.mutex.Lock()
-		delete(r.ns.nchans, user)
-		r.ns.mutex.Unlock()
+		r.Ns.Nmutex.Lock()
+		delete(r.Ns.Nchans, user)
+		r.Ns.Nmutex.Unlock()
 	}()
 
 	return nchan, nil
