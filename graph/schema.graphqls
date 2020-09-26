@@ -55,6 +55,11 @@ type Lesson {
   chat: String!
 }
 
+type Notification {
+  title: String!
+  description: String!
+}
+
 #################################### INPUTS ################################################
 
 input NewStudent {
@@ -89,6 +94,9 @@ input LoginInfo {
 type Query {
   self: User!,
   lessons: [Lesson!]!
+
+  # TODO: REMOVE AT SOME POINT IT IS ONLY FOR TESTING
+  heartbeat(input: String!): Heartbeat!
 }
 
 ############################### MUTATIONS ####################################################
@@ -96,8 +104,15 @@ type Query {
 type Mutation {
   createStudent(input: NewStudent!): String!
   loginStudent(input: LoginInfo!): String!
+
   createTutor(input: NewTutor!): String!
   loginTutor(input: LoginInfo!): String!
   refreshToken: String!
+
   updateHeartbeat(input: Heartbeat!): String!
+}
+
+############################### MUTATIONS ####################################################
+type Subscription {
+  subscribeNotifications(user: String!): Notification!
 }

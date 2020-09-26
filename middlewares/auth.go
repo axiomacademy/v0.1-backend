@@ -12,6 +12,7 @@ import (
 
 type AuthMiddleware struct {
 	Secret string
+	Repo   *db.Repository
 }
 
 func (amw *AuthMiddleware) Middleware(next http.Handler) http.Handler {
@@ -38,8 +39,7 @@ func (amw *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 
 		// Retrieve user from database
 		if idSplit[0] == "s" {
-			student := db.Student{}
-			err = student.GetById(id)
+			s, err := amw.Repo.GetStudentById(id)
 
 			if err != nil {
 				http.Error(w, "Malformed auth token", http.StatusForbidden)
@@ -47,13 +47,12 @@ func (amw *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			}
 
 			ctx = context.WithValue(r.Context(), "user", map[string]interface{}{
-				"user": student,
+				"user": s,
 				"type": idSplit[0],
 			})
 
 		} else if idSplit[0] == "t" {
-			tutor := db.Tutor{}
-			err = tutor.GetById(id)
+			t, err := amw.Repo.GetTutorById(id)
 
 			if err != nil {
 				fmt.Println(err)
@@ -62,7 +61,7 @@ func (amw *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			}
 
 			ctx = context.WithValue(r.Context(), "user", map[string]interface{}{
-				"user": tutor,
+				"user": t,
 				"type": idSplit[0],
 			})
 		} else {

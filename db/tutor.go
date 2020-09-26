@@ -23,7 +23,9 @@ type Tutor struct {
 	Subjects       []string
 }
 
-func (t *Tutor) Create(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string) error {
+func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string) (Tutor, error) {
+
+	var t Tutor
 
 	// GENERATING UUID
 	t.Id = "t:" + uuid.New()
@@ -39,30 +41,30 @@ func (t *Tutor) Create(username string, firstName string, lastName string, email
 	t.Education = education
 	t.Subjects = subjects
 
-	tx, err := DbPool.Begin(context.Background())
+	tx, err := r.DbPool.Begin(context.Background())
 	if err != nil {
-		return err
+		return t, err
 	}
 
 	defer tx.Rollback(context.Background())
 
-	sql := `INSERT INTO tutors (id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, rating, bio, education, subjects) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	sql := `INSERT INTO tutors (id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, rating, bio, education, subjects) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
 	_, err = tx.Exec(context.Background(), sql, t.Id, t.Username, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Rating, t.Bio, t.Education, t.Subjects)
 
 	if err != nil {
-		return err
+		return t, err
 	}
 
 	err = tx.Commit(context.Background())
 	if err != nil {
-		return err
+		return t, err
 	}
 
-	return nil
+	return t, nil
 }
 
-func (t *Tutor) Update() error {
-	tx, err := DbPool.Begin(context.Background())
+func (r *Repository) UpdateTutor(t Tutor) error {
+	tx, err := r.DbPool.Begin(context.Background())
 	if err != nil {
 		return err
 	}
@@ -84,12 +86,13 @@ func (t *Tutor) Update() error {
 	return nil
 }
 
-func (t *Tutor) GetById(id string) error {
+func (r *Repository) GetTutorById(id string) (Tutor, error) {
 	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE id = $1`
 
 	var subjects pgtype.EnumArray
+	var t Tutor
 
-	if err := DbPool.QueryRow(context.Background(), sql, id).Scan(
+	if err := r.DbPool.QueryRow(context.Background(), sql, id).Scan(
 		&t.Id,
 		&t.Username,
 		&t.FirstName,
@@ -102,20 +105,21 @@ func (t *Tutor) GetById(id string) error {
 		&t.Rating,
 		&t.Education,
 		&subjects); err != nil {
-		return err
+		return t, err
 	}
 
 	// Populating subjects separately because it is an enum array
 	subjects.AssignTo(&t.Subjects)
-	return nil
+	return t, nil
 }
 
-func (t *Tutor) GetByUsername(username string) error {
+func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE username = $1`
 
 	var subjects pgtype.EnumArray
+	var t Tutor
 
-	if err := DbPool.QueryRow(context.Background(), sql, username).Scan(
+	if err := r.DbPool.QueryRow(context.Background(), sql, username).Scan(
 		&t.Id,
 		&t.Username,
 		&t.FirstName,
@@ -128,20 +132,20 @@ func (t *Tutor) GetByUsername(username string) error {
 		&t.Rating,
 		&t.Education,
 		&subjects); err != nil {
-		return err
+		return t, err
 	}
 
 	// Populating subjects separately because it is an enum array
 	subjects.AssignTo(&t.Subjects)
-	return nil
+	return t, nil
 }
 
-func (t *Tutor) GetLessons() ([]Lesson, error) {
+func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
 	sql := `SELECT id, subject, tutor, student, duration, date, chat FROM lessons WHERE tutor = $1`
 
 	var lessons []Lesson
 
-	rows, err := DbPool.Query(context.Background(), sql, t.Id)
+	rows, err := r.DbPool.Query(context.Background(), sql, tid)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +170,6 @@ func (t *Tutor) GetLessons() ([]Lesson, error) {
 	return lessons, nil
 }
 
-func (t *Tutor) ToModel() model.Tutor {
+func (r *Repository) ToTutorModel(t Tutor) model.Tutor {
 	return model.Tutor{ID: t.Id, Username: t.Username, FirstName: t.FirstName, LastName: t.LastName, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: t.Subjects}
 }
