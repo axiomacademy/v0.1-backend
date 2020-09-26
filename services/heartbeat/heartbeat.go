@@ -1,6 +1,10 @@
 package heartbeat
 
 import (
+	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/dgraph-io/badger/v2"
 	"github.com/solderneer/axiom-backend/graph/model"
 )
@@ -28,9 +32,18 @@ func (hs *HeartbeatService) openBadger(badgerDir string) (*badger.DB, error) {
 	}
 }
 
-func (hs *HeartbeatService) SetHeartbeat(uid string, heartbeat model.Heartbeat) error {
+func (hs *HeartbeatService) SetHeartbeat(uid string, heartbeat model.HeartbeatStatus) error {
+	heartbeatTime := time.Now()
+
+	// By all accounts, for the record, err should always be nil
 	err := hs.db.Update(func(txn *badger.Txn) error {
-		return txn.Set([]byte(uid), []byte(heartbeat))
+		err := txn.Set([]byte(uid+"-status"), []byte(heartbeat))
+		if err != nil {
+			return err
+		}
+
+		err = txn.Set([]byte(uid+"-time"), []byte(fmt.Sprintf("%d", heartbeatTime.Unix())))
+		return err
 	})
 
 	return err
@@ -39,19 +52,39 @@ func (hs *HeartbeatService) SetHeartbeat(uid string, heartbeat model.Heartbeat) 
 func (hs *HeartbeatService) GetHeartbeat(uid string) (model.Heartbeat, error) {
 	var heartbeat model.Heartbeat
 	err := hs.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(uid))
+		item, err := txn.Get([]byte(uid + "-status"))
 		if err == badger.ErrKeyNotFound {
 			return nil
 		} else if err != nil {
 			return err
 		}
 
-		val, err := item.ValueCopy(nil)
+		status, err := item.ValueCopy(nil)
 		if err != nil {
 			return err
 		}
 
-		heartbeat = model.Heartbeat(val)
+		item, err = txn.Get([]byte(uid + "-time"))
+		if err == badger.ErrKeyNotFound {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		lastSeenRaw, err := item.ValueCopy(nil)
+		if err != nil {
+			return err
+		}
+
+		lastSeen, err := strconv.ParseInt(string(lastSeenRaw), 10, 64)
+		if err != nil {
+			return err
+		}
+
+		heartbeat = model.Heartbeat{
+			Status:   model.HeartbeatStatus(status),
+			LastSeen: int(lastSeen),
+		}
 
 		return err
 	})

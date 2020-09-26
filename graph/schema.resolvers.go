@@ -121,7 +121,7 @@ func (r *mutationResolver) RefreshToken(ctx context.Context) (string, error) {
 	return token, nil
 }
 
-func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Heartbeat) (string, error) {
+func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.HeartbeatStatus) (string, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
 		return "", err
@@ -196,14 +196,13 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	return lessons, nil
 }
 
-func (r *queryResolver) Heartbeat(ctx context.Context, input string) (model.Heartbeat, error) {
+func (r *queryResolver) Heartbeat(ctx context.Context, input string) (*model.Heartbeat, error) {
 	h, err := r.Hs.GetHeartbeat(input)
 	if err != nil {
-		return "", err
+		return &h, err
 	}
 
-	return h, nil
-
+	return &h, nil
 }
 
 func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {
