@@ -52,21 +52,24 @@ type ComplexityRoot struct {
 	}
 
 	Lesson struct {
-		Chat     func(childComplexity int) int
-		Date     func(childComplexity int) int
-		Duration func(childComplexity int) int
-		ID       func(childComplexity int) int
-		Student  func(childComplexity int) int
-		Subject  func(childComplexity int) int
-		Summary  func(childComplexity int) int
-		Tutor    func(childComplexity int) int
+		Chat         func(childComplexity int) int
+		Date         func(childComplexity int) int
+		Duration     func(childComplexity int) int
+		ID           func(childComplexity int) int
+		Student      func(childComplexity int) int
+		Subject      func(childComplexity int) int
+		SubjectLevel func(childComplexity int) int
+		Summary      func(childComplexity int) int
+		Tutor        func(childComplexity int) int
 	}
 
 	Mutation struct {
+		AcceptMatch     func(childComplexity int, input string) int
 		CreateStudent   func(childComplexity int, input model.NewStudent) int
 		CreateTutor     func(childComplexity int, input model.NewTutor) int
 		LoginStudent    func(childComplexity int, input model.LoginInfo) int
 		LoginTutor      func(childComplexity int, input model.LoginInfo) int
+		MatchOnDemand   func(childComplexity int, input string) int
 		RefreshToken    func(childComplexity int) int
 		UpdateHeartbeat func(childComplexity int, input model.HeartbeatStatus) int
 	}
@@ -77,9 +80,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Heartbeat func(childComplexity int, input string) int
-		Lessons   func(childComplexity int) int
-		Self      func(childComplexity int) int
+		CheckForMatch func(childComplexity int, input string) int
+		Heartbeat     func(childComplexity int, input string) int
+		Lessons       func(childComplexity int) int
+		Self          func(childComplexity int) int
 	}
 
 	Student struct {
@@ -96,17 +100,18 @@ type ComplexityRoot struct {
 	}
 
 	Tutor struct {
-		Bio        func(childComplexity int) int
-		Education  func(childComplexity int) int
-		Email      func(childComplexity int) int
-		FirstName  func(childComplexity int) int
-		HourlyRate func(childComplexity int) int
-		ID         func(childComplexity int) int
-		LastName   func(childComplexity int) int
-		ProfilePic func(childComplexity int) int
-		Rating     func(childComplexity int) int
-		Subjects   func(childComplexity int) int
-		Username   func(childComplexity int) int
+		Bio           func(childComplexity int) int
+		Education     func(childComplexity int) int
+		Email         func(childComplexity int) int
+		FirstName     func(childComplexity int) int
+		HourlyRate    func(childComplexity int) int
+		ID            func(childComplexity int) int
+		LastName      func(childComplexity int) int
+		ProfilePic    func(childComplexity int) int
+		Rating        func(childComplexity int) int
+		SubjectLevels func(childComplexity int) int
+		Subjects      func(childComplexity int) int
+		Username      func(childComplexity int) int
 	}
 }
 
@@ -117,11 +122,14 @@ type MutationResolver interface {
 	LoginTutor(ctx context.Context, input model.LoginInfo) (string, error)
 	RefreshToken(ctx context.Context) (string, error)
 	UpdateHeartbeat(ctx context.Context, input model.HeartbeatStatus) (string, error)
+	MatchOnDemand(ctx context.Context, input string) (string, error)
+	AcceptMatch(ctx context.Context, input string) (*model.Lesson, error)
 }
 type QueryResolver interface {
 	Self(ctx context.Context) (model.User, error)
 	Lessons(ctx context.Context) ([]*model.Lesson, error)
 	Heartbeat(ctx context.Context, input string) (*model.Heartbeat, error)
+	CheckForMatch(ctx context.Context, input string) (*model.Lesson, error)
 }
 type SubscriptionResolver interface {
 	SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error)
@@ -198,6 +206,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Lesson.Subject(childComplexity), true
 
+	case "Lesson.subjectLevel":
+		if e.complexity.Lesson.SubjectLevel == nil {
+			break
+		}
+
+		return e.complexity.Lesson.SubjectLevel(childComplexity), true
+
 	case "Lesson.summary":
 		if e.complexity.Lesson.Summary == nil {
 			break
@@ -211,6 +226,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Lesson.Tutor(childComplexity), true
+
+	case "Mutation.acceptMatch":
+		if e.complexity.Mutation.AcceptMatch == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_acceptMatch_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AcceptMatch(childComplexity, args["input"].(string)), true
 
 	case "Mutation.createStudent":
 		if e.complexity.Mutation.CreateStudent == nil {
@@ -260,6 +287,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.LoginTutor(childComplexity, args["input"].(model.LoginInfo)), true
 
+	case "Mutation.matchOnDemand":
+		if e.complexity.Mutation.MatchOnDemand == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_matchOnDemand_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.MatchOnDemand(childComplexity, args["input"].(string)), true
+
 	case "Mutation.refreshToken":
 		if e.complexity.Mutation.RefreshToken == nil {
 			break
@@ -292,6 +331,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Notification.Title(childComplexity), true
+
+	case "Query.checkForMatch":
+		if e.complexity.Query.CheckForMatch == nil {
+			break
+		}
+
+		args, err := ec.field_Query_checkForMatch_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CheckForMatch(childComplexity, args["input"].(string)), true
 
 	case "Query.heartbeat":
 		if e.complexity.Query.Heartbeat == nil {
@@ -436,6 +487,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tutor.Rating(childComplexity), true
 
+	case "Tutor.subjectLevels":
+		if e.complexity.Tutor.SubjectLevels == nil {
+			break
+		}
+
+		return e.complexity.Tutor.SubjectLevels(childComplexity), true
+
 	case "Tutor.subjects":
 		if e.complexity.Tutor.Subjects == nil {
 			break
@@ -575,11 +633,13 @@ type Tutor implements User {
   rating: Int!
   education: [String!]!
   subjects: [String!]!
+  subjectLevels: [String!]!
 }
 
 type Lesson {
   id: ID!
   subject: String!
+  subjectLevel: String!
   summary: String!
   tutor: Tutor!
   student: Student!
@@ -620,6 +680,7 @@ input NewTutor {
   bio: String!
   education: [String!]!
   subjects: [String!]!
+  subjectLevels: [String!]!
 }
 
 input LoginInfo {
@@ -635,6 +696,9 @@ type Query {
 
   # TODO: REMOVE AT SOME POINT IT IS ONLY FOR TESTING
   heartbeat(input: String!): Heartbeat!
+  
+  # Match Service
+  checkForMatch(input: String!): Lesson
 }
 
 ############################### MUTATIONS ####################################################
@@ -647,10 +711,15 @@ type Mutation {
   loginTutor(input: LoginInfo!): String!
   refreshToken: String!
 
+  # Heartbeat Service
   updateHeartbeat(input: HeartbeatStatus!): String!
+
+  # Match Service
+  matchOnDemand(input: String!): String!
+  acceptMatch(input: String!): Lesson!
 }
 
-############################### MUTATIONS ####################################################
+############################### SUBSCRIPTIONS ####################################################
 type Subscription {
   subscribeNotifications(user: String!): Notification!
 }
@@ -661,6 +730,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_acceptMatch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_createStudent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -722,6 +806,21 @@ func (ec *executionContext) field_Mutation_loginTutor_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_matchOnDemand_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateHeartbeat_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -749,6 +848,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_checkForMatch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -940,6 +1054,40 @@ func (ec *executionContext) _Lesson_subject(ctx context.Context, field graphql.C
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Subject, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Lesson_subjectLevel(ctx context.Context, field graphql.CollectedField, obj *model.Lesson) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Lesson",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SubjectLevel, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1399,6 +1547,88 @@ func (ec *executionContext) _Mutation_updateHeartbeat(ctx context.Context, field
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_matchOnDemand(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_matchOnDemand_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().MatchOnDemand(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_acceptMatch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_acceptMatch_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AcceptMatch(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lesson)
+	fc.Result = res
+	return ec.marshalNLesson2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐLesson(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Notification_title(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1574,6 +1804,44 @@ func (ec *executionContext) _Query_heartbeat(ctx context.Context, field graphql.
 	res := resTmp.(*model.Heartbeat)
 	fc.Result = res
 	return ec.marshalNHeartbeat2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐHeartbeat(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_checkForMatch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_checkForMatch_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().CheckForMatch(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lesson)
+	fc.Result = res
+	return ec.marshalOLesson2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐLesson(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2258,6 +2526,40 @@ func (ec *executionContext) _Tutor_subjects(ctx context.Context, field graphql.C
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Subjects, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Tutor_subjectLevels(ctx context.Context, field graphql.CollectedField, obj *model.Tutor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Tutor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SubjectLevels, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3503,6 +3805,14 @@ func (ec *executionContext) unmarshalInputNewTutor(ctx context.Context, obj inte
 			if err != nil {
 				return it, err
 			}
+		case "subjectLevels":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("subjectLevels"))
+			it.SubjectLevels, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -3593,6 +3903,11 @@ func (ec *executionContext) _Lesson(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "subjectLevel":
+			out.Values[i] = ec._Lesson_subjectLevel(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "summary":
 			out.Values[i] = ec._Lesson_summary(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3676,6 +3991,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "updateHeartbeat":
 			out.Values[i] = ec._Mutation_updateHeartbeat(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "matchOnDemand":
+			out.Values[i] = ec._Mutation_matchOnDemand(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "acceptMatch":
+			out.Values[i] = ec._Mutation_acceptMatch(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3777,6 +4102,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		case "checkForMatch":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_checkForMatch(ctx, field)
 				return res
 			})
 		case "__type":
@@ -3929,6 +4265,11 @@ func (ec *executionContext) _Tutor(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "subjects":
 			out.Values[i] = ec._Tutor_subjects(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "subjectLevels":
+			out.Values[i] = ec._Tutor_subjectLevels(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4270,6 +4611,10 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNLesson2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐLesson(ctx context.Context, sel ast.SelectionSet, v model.Lesson) graphql.Marshaler {
+	return ec._Lesson(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNLesson2ᚕᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐLessonᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Lesson) graphql.Marshaler {
@@ -4674,6 +5019,13 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
+}
+
+func (ec *executionContext) marshalOLesson2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐLesson(ctx context.Context, sel ast.SelectionSet, v *model.Lesson) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Lesson(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

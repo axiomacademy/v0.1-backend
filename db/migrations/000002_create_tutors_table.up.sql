@@ -1,4 +1,5 @@
 CREATE TYPE subject AS ENUM ('PHYSICS', 'ECONOMICS', 'MATHEMATICS', 'CHEMISTRY', 'BIOLOGY');
+CREATE TYPE subject_level AS ENUM ('A LEVELS', 'O LEVELS', 'IB');
 
 CREATE TABLE IF NOT EXISTS tutors (
   id VARCHAR(38) NOT NULL UNIQUE,
@@ -13,5 +14,6 @@ CREATE TABLE IF NOT EXISTS tutors (
   rating INT NOT NULL,
   education TEXT [],
   subjects subject [],
+  subject_levels subject_level [],
   PRIMARY KEY(id)
 );

@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
@@ -60,7 +61,7 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 	}
 
 	// DEFAULT RATING IS 3
-	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, input.Subjects)
+	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, input.Subjects, input.SubjectLevels)
 	if err != nil {
 		return "", err
 	}
@@ -146,6 +147,14 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 	return token, nil
 }
 
+func (r *mutationResolver) MatchOnDemand(ctx context.Context, input string) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) AcceptMatch(ctx context.Context, input string) (*model.Lesson, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
@@ -203,6 +212,10 @@ func (r *queryResolver) Heartbeat(ctx context.Context, input string) (*model.Hea
 	}
 
 	return &h, nil
+}
+
+func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model.Lesson, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {

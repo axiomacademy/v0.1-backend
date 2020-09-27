@@ -18,14 +18,15 @@ type Heartbeat struct {
 }
 
 type Lesson struct {
-	ID       string   `json:"id"`
-	Subject  string   `json:"subject"`
-	Summary  string   `json:"summary"`
-	Tutor    *Tutor   `json:"tutor"`
-	Student  *Student `json:"student"`
-	Duration int      `json:"duration"`
-	Date     string   `json:"date"`
-	Chat     string   `json:"chat"`
+	ID           string   `json:"id"`
+	Subject      string   `json:"subject"`
+	SubjectLevel string   `json:"subjectLevel"`
+	Summary      string   `json:"summary"`
+	Tutor        *Tutor   `json:"tutor"`
+	Student      *Student `json:"student"`
+	Duration     int      `json:"duration"`
+	Date         string   `json:"date"`
+	Chat         string   `json:"chat"`
 }
 
 type LoginInfo struct {
@@ -43,16 +44,17 @@ type NewStudent struct {
 }
 
 type NewTutor struct {
-	Username   string   `json:"username"`
-	FirstName  string   `json:"firstName"`
-	LastName   string   `json:"lastName"`
-	Email      string   `json:"email"`
-	Password   string   `json:"password"`
-	ProfilePic string   `json:"profilePic"`
-	HourlyRate int      `json:"hourlyRate"`
-	Bio        string   `json:"bio"`
-	Education  []string `json:"education"`
-	Subjects   []string `json:"subjects"`
+	Username      string   `json:"username"`
+	FirstName     string   `json:"firstName"`
+	LastName      string   `json:"lastName"`
+	Email         string   `json:"email"`
+	Password      string   `json:"password"`
+	ProfilePic    string   `json:"profilePic"`
+	HourlyRate    int      `json:"hourlyRate"`
+	Bio           string   `json:"bio"`
+	Education     []string `json:"education"`
+	Subjects      []string `json:"subjects"`
+	SubjectLevels []string `json:"subjectLevels"`
 }
 
 type Notification struct {
@@ -72,17 +74,18 @@ type Student struct {
 func (Student) IsUser() {}
 
 type Tutor struct {
-	ID         string   `json:"id"`
-	Username   string   `json:"username"`
-	FirstName  string   `json:"firstName"`
-	LastName   string   `json:"lastName"`
-	Email      string   `json:"email"`
-	ProfilePic string   `json:"profilePic"`
-	HourlyRate int      `json:"hourlyRate"`
-	Bio        string   `json:"bio"`
-	Rating     int      `json:"rating"`
-	Education  []string `json:"education"`
-	Subjects   []string `json:"subjects"`
+	ID            string   `json:"id"`
+	Username      string   `json:"username"`
+	FirstName     string   `json:"firstName"`
+	LastName      string   `json:"lastName"`
+	Email         string   `json:"email"`
+	ProfilePic    string   `json:"profilePic"`
+	HourlyRate    int      `json:"hourlyRate"`
+	Bio           string   `json:"bio"`
+	Rating        int      `json:"rating"`
+	Education     []string `json:"education"`
+	Subjects      []string `json:"subjects"`
+	SubjectLevels []string `json:"subjectLevels"`
 }
 
 func (Tutor) IsUser() {}

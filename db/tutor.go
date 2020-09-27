@@ -21,9 +21,10 @@ type Tutor struct {
 	Rating         int
 	Education      []string
 	Subjects       []string
+	SubjectLevels  []string
 }
 
-func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string) (Tutor, error) {
+func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string, subject_levels []string) (Tutor, error) {
 
 	var t Tutor
 
@@ -40,6 +41,7 @@ func (r *Repository) CreateTutor(username string, firstName string, lastName str
 	t.Bio = bio
 	t.Education = education
 	t.Subjects = subjects
+	t.SubjectLevels = subject_levels
 
 	tx, err := r.DbPool.Begin(context.Background())
 	if err != nil {
@@ -48,8 +50,8 @@ func (r *Repository) CreateTutor(username string, firstName string, lastName str
 
 	defer tx.Rollback(context.Background())
 
-	sql := `INSERT INTO tutors (id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, rating, bio, education, subjects) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
-	_, err = tx.Exec(context.Background(), sql, t.Id, t.Username, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Rating, t.Bio, t.Education, t.Subjects)
+	sql := `INSERT INTO tutors (id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, rating, bio, education, subjects, subject_levels) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+	_, err = tx.Exec(context.Background(), sql, t.Id, t.Username, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Rating, t.Bio, t.Education, t.Subjects, t.SubjectLevels)
 
 	if err != nil {
 		return t, err
@@ -71,8 +73,8 @@ func (r *Repository) UpdateTutor(t Tutor) error {
 
 	defer tx.Rollback(context.Background())
 
-	sql := `UPDATE tutors SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, hourly_rate = $7, bio = $8, rating = $9, education = $10, subjects = $11 WHERE id = $1`
-	_, err = tx.Exec(context.Background(), sql, t.Id, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Bio, t.Rating, t.Education, t.Subjects)
+	sql := `UPDATE tutors SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, hourly_rate = $7, bio = $8, rating = $9, education = $10, subjects = $11, subject_levels = $12 WHERE id = $1`
+	_, err = tx.Exec(context.Background(), sql, t.Id, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Bio, t.Rating, t.Education, t.Subjects, t.SubjectLevels)
 
 	if err != nil {
 		return err
@@ -87,9 +89,10 @@ func (r *Repository) UpdateTutor(t Tutor) error {
 }
 
 func (r *Repository) GetTutorById(id string) (Tutor, error) {
-	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE id = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects, subject_levels FROM tutors WHERE id = $1`
 
 	var subjects pgtype.EnumArray
+	var subject_levels pgtype.EnumArray
 	var t Tutor
 
 	if err := r.DbPool.QueryRow(context.Background(), sql, id).Scan(
@@ -104,19 +107,22 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 		&t.Bio,
 		&t.Rating,
 		&t.Education,
-		&subjects); err != nil {
+		&subjects,
+		&subject_levels); err != nil {
 		return t, err
 	}
 
 	// Populating subjects separately because it is an enum array
 	subjects.AssignTo(&t.Subjects)
+	subject_levels.AssignTo(&t.SubjectLevels)
 	return t, nil
 }
 
 func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
-	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE username = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects, subject_levels FROM tutors WHERE username = $1`
 
 	var subjects pgtype.EnumArray
+	var subject_levels pgtype.EnumArray
 	var t Tutor
 
 	if err := r.DbPool.QueryRow(context.Background(), sql, username).Scan(
@@ -131,17 +137,19 @@ func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 		&t.Bio,
 		&t.Rating,
 		&t.Education,
-		&subjects); err != nil {
+		&subjects,
+		&subject_levels); err != nil {
 		return t, err
 	}
 
 	// Populating subjects separately because it is an enum array
 	subjects.AssignTo(&t.Subjects)
+	subject_levels.AssignTo(&t.SubjectLevels)
 	return t, nil
 }
 
 func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
-	sql := `SELECT id, subject, tutor, student, duration, date, chat FROM lessons WHERE tutor = $1`
+	sql := `SELECT id, subject, subject_level, summary, tutor, student, duration, date, chat FROM lessons WHERE tutor = $1`
 
 	var lessons []Lesson
 
@@ -153,7 +161,7 @@ func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var lesson Lesson
-		err := rows.Scan(&lesson.Id, &lesson.Subject, &lesson.Tutor, &lesson.Student, &lesson.Duration, &lesson.Date, &lesson.Chat)
+		err := rows.Scan(&lesson.Id, &lesson.Subject, &lesson.SubjectLevel, &lesson.Summary, &lesson.Tutor, &lesson.Student, &lesson.Duration, &lesson.Date, &lesson.Chat)
 
 		if err != nil {
 			return nil, err
@@ -171,5 +179,5 @@ func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
 }
 
 func (r *Repository) ToTutorModel(t Tutor) model.Tutor {
-	return model.Tutor{ID: t.Id, Username: t.Username, FirstName: t.FirstName, LastName: t.LastName, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: t.Subjects}
+	return model.Tutor{ID: t.Id, Username: t.Username, FirstName: t.FirstName, LastName: t.LastName, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: t.Subjects, SubjectLevels: t.SubjectLevels}
 }

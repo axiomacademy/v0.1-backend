@@ -42,11 +42,13 @@ type Tutor implements User {
   rating: Int!
   education: [String!]!
   subjects: [String!]!
+  subjectLevels: [String!]!
 }
 
 type Lesson {
   id: ID!
   subject: String!
+  subjectLevel: String!
   summary: String!
   tutor: Tutor!
   student: Student!
@@ -87,6 +89,7 @@ input NewTutor {
   bio: String!
   education: [String!]!
   subjects: [String!]!
+  subjectLevels: [String!]!
 }
 
 input LoginInfo {
@@ -102,6 +105,9 @@ type Query {
 
   # TODO: REMOVE AT SOME POINT IT IS ONLY FOR TESTING
   heartbeat(input: String!): Heartbeat!
+  
+  # Match Service
+  checkForMatch(input: String!): Lesson
 }
 
 ############################### MUTATIONS ####################################################
@@ -114,10 +120,15 @@ type Mutation {
   loginTutor(input: LoginInfo!): String!
   refreshToken: String!
 
+  # Heartbeat Service
   updateHeartbeat(input: HeartbeatStatus!): String!
+
+  # Match Service
+  matchOnDemand(input: String!): String!
+  acceptMatch(input: String!): Lesson!
 }
 
-############################### MUTATIONS ####################################################
+############################### SUBSCRIPTIONS ####################################################
 type Subscription {
   subscribeNotifications(user: String!): Notification!
 }
