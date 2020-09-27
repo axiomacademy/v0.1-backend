@@ -14,16 +14,20 @@ import (
 )
 
 type Repository struct {
-	DbPool *pgxpool.Pool
+	dbPool *pgxpool.Pool
 }
 
 func (r *Repository) InitDb() {
 	var err error
-	r.DbPool, err = pgxpool.Connect(context.Background(), "postgresql://postgres:axiom@127.0.0.1:5432/postgres")
+	r.dbPool, err = pgxpool.Connect(context.Background(), "postgresql://postgres:axiom@127.0.0.1:5432/postgres")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func (r *Repository) Close() {
+	r.dbPool.Close()
 }
 
 // TODO: Reuse the DBPool after typecasting pgxpool.Poor into *sql.DB using the pgx/stdlib library

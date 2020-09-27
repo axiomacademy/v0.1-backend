@@ -43,7 +43,7 @@ func (r *Repository) CreateTutor(username string, firstName string, lastName str
 	t.Subjects = subjects
 	t.SubjectLevels = subject_levels
 
-	tx, err := r.DbPool.Begin(context.Background())
+	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
 		return t, err
 	}
@@ -66,7 +66,7 @@ func (r *Repository) CreateTutor(username string, firstName string, lastName str
 }
 
 func (r *Repository) UpdateTutor(t Tutor) error {
-	tx, err := r.DbPool.Begin(context.Background())
+	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 	var subject_levels pgtype.EnumArray
 	var t Tutor
 
-	if err := r.DbPool.QueryRow(context.Background(), sql, id).Scan(
+	if err := r.dbPool.QueryRow(context.Background(), sql, id).Scan(
 		&t.Id,
 		&t.Username,
 		&t.FirstName,
@@ -125,7 +125,7 @@ func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 	var subject_levels pgtype.EnumArray
 	var t Tutor
 
-	if err := r.DbPool.QueryRow(context.Background(), sql, username).Scan(
+	if err := r.dbPool.QueryRow(context.Background(), sql, username).Scan(
 		&t.Id,
 		&t.Username,
 		&t.FirstName,
@@ -153,7 +153,7 @@ func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
 
 	var lessons []Lesson
 
-	rows, err := r.DbPool.Query(context.Background(), sql, tid)
+	rows, err := r.dbPool.Query(context.Background(), sql, tid)
 	if err != nil {
 		return nil, err
 	}

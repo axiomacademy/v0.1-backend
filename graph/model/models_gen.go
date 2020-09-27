@@ -58,8 +58,10 @@ type NewTutor struct {
 }
 
 type Notification struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	Student      *Student `json:"student"`
+	Subject      string   `json:"subject"`
+	SubjectLevel string   `json:"subject_level"`
+	Expiry       int      `json:"expiry"`
 }
 
 type Student struct {

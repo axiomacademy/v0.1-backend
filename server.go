@@ -33,7 +33,7 @@ func main() {
 	repo.InitDb()
 	repo.Migrate()
 
-	defer repo.DbPool.Close()
+	defer repo.Close()
 
 	// Initialising all services
 	ns := notifs.NotifService{Nchans: map[string]chan *model.Notification{}, Nmutex: sync.Mutex{}}

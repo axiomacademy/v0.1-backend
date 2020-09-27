@@ -75,8 +75,10 @@ type ComplexityRoot struct {
 	}
 
 	Notification struct {
-		Description func(childComplexity int) int
-		Title       func(childComplexity int) int
+		Expiry       func(childComplexity int) int
+		Student      func(childComplexity int) int
+		Subject      func(childComplexity int) int
+		SubjectLevel func(childComplexity int) int
 	}
 
 	Query struct {
@@ -318,19 +320,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateHeartbeat(childComplexity, args["input"].(model.HeartbeatStatus)), true
 
-	case "Notification.description":
-		if e.complexity.Notification.Description == nil {
+	case "Notification.expiry":
+		if e.complexity.Notification.Expiry == nil {
 			break
 		}
 
-		return e.complexity.Notification.Description(childComplexity), true
+		return e.complexity.Notification.Expiry(childComplexity), true
 
-	case "Notification.title":
-		if e.complexity.Notification.Title == nil {
+	case "Notification.student":
+		if e.complexity.Notification.Student == nil {
 			break
 		}
 
-		return e.complexity.Notification.Title(childComplexity), true
+		return e.complexity.Notification.Student(childComplexity), true
+
+	case "Notification.subject":
+		if e.complexity.Notification.Subject == nil {
+			break
+		}
+
+		return e.complexity.Notification.Subject(childComplexity), true
+
+	case "Notification.subject_level":
+		if e.complexity.Notification.SubjectLevel == nil {
+			break
+		}
+
+		return e.complexity.Notification.SubjectLevel(childComplexity), true
 
 	case "Query.checkForMatch":
 		if e.complexity.Query.CheckForMatch == nil {
@@ -649,8 +665,10 @@ type Lesson {
 }
 
 type Notification {
-  title: String!
-  description: String!
+  student: Student!
+  subject: String!
+  subject_level: String!
+  expiry: Int!
 }
 
 type Heartbeat {
@@ -1629,7 +1647,7 @@ func (ec *executionContext) _Mutation_acceptMatch(ctx context.Context, field gra
 	return ec.marshalNLesson2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐLesson(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Notification_title(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
+func (ec *executionContext) _Notification_student(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1646,7 +1664,41 @@ func (ec *executionContext) _Notification_title(ctx context.Context, field graph
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Title, nil
+		return obj.Student, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Student)
+	fc.Result = res
+	return ec.marshalNStudent2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐStudent(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Notification_subject(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Notification",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subject, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1663,7 +1715,7 @@ func (ec *executionContext) _Notification_title(ctx context.Context, field graph
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Notification_description(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
+func (ec *executionContext) _Notification_subject_level(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1680,7 +1732,7 @@ func (ec *executionContext) _Notification_description(ctx context.Context, field
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Description, nil
+		return obj.SubjectLevel, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1695,6 +1747,40 @@ func (ec *executionContext) _Notification_description(ctx context.Context, field
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Notification_expiry(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Notification",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Expiry, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_self(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4026,13 +4112,23 @@ func (ec *executionContext) _Notification(ctx context.Context, sel ast.Selection
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Notification")
-		case "title":
-			out.Values[i] = ec._Notification_title(ctx, field, obj)
+		case "student":
+			out.Values[i] = ec._Notification_student(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "description":
-			out.Values[i] = ec._Notification_description(ctx, field, obj)
+		case "subject":
+			out.Values[i] = ec._Notification_subject(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "subject_level":
+			out.Values[i] = ec._Notification_subject_level(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "expiry":
+			out.Values[i] = ec._Notification_expiry(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

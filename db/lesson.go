@@ -46,7 +46,7 @@ func (r *Repository) CreateLesson(subject string, subject_level string, tutor st
 	l.Duration = duration
 	l.Date = date
 
-	tx, err := r.DbPool.Begin(context.Background())
+	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
 		return l, err
 	}
@@ -69,7 +69,7 @@ func (r *Repository) CreateLesson(subject string, subject_level string, tutor st
 }
 
 func (r *Repository) UpdateLesson(l Lesson) error {
-	tx, err := r.DbPool.Begin(context.Background())
+	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (r *Repository) GetLessonById(id string) (Lesson, error) {
 	var l Lesson
 	sql := `SELECT id, subject, subject_level, summary, tutor, student, duration, date, chat FROM lessons WHERE id = $1`
 
-	if err := r.DbPool.QueryRow(context.Background(), sql, id).Scan(&l.Id, &l.Subject, &l.SubjectLevel, &l.Summary, &l.Tutor, &l.Student, &l.Duration, &l.Date, &l.Chat); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, id).Scan(&l.Id, &l.Subject, &l.SubjectLevel, &l.Summary, &l.Tutor, &l.Student, &l.Duration, &l.Date, &l.Chat); err != nil {
 		return l, err
 	}
 

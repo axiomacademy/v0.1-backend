@@ -34,7 +34,7 @@ func (r *Repository) CreateStudent(username string, firstName string, lastName s
 	s.HashedPassword = hashedPassword
 	s.ProfilePic = profile_pic
 
-	tx, err := r.DbPool.Begin(context.Background())
+	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
 		return s, err
 	}
@@ -57,7 +57,7 @@ func (r *Repository) CreateStudent(username string, firstName string, lastName s
 }
 
 func (r *Repository) UpdateStudent(s Student) error {
-	tx, err := r.DbPool.Begin(context.Background())
+	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (r *Repository) GetStudentById(id string) (Student, error) {
 
 	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic FROM students WHERE id = $1`
 
-	if err := r.DbPool.QueryRow(context.Background(), sql, id).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, id).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
 		return s, err
 	}
 
@@ -98,7 +98,7 @@ func (r *Repository) GetStudentByUsername(username string) (Student, error) {
 
 	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic FROM students WHERE username = $1`
 
-	if err := r.DbPool.QueryRow(context.Background(), sql, username).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, username).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
 		return s, err
 	}
 
@@ -110,7 +110,7 @@ func (r *Repository) GetStudentLessons(sid string) ([]Lesson, error) {
 
 	var lessons []Lesson
 
-	rows, err := r.DbPool.Query(context.Background(), sql, sid)
+	rows, err := r.dbPool.Query(context.Background(), sql, sid)
 	if err != nil {
 		return nil, err
 	}

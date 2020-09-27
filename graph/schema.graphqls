@@ -58,8 +58,10 @@ type Lesson {
 }
 
 type Notification {
-  title: String!
-  description: String!
+  student: Student!
+  subject: String!
+  subject_level: String!
+  expiry: Int!
 }
 
 type Heartbeat {

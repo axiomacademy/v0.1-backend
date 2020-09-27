@@ -49,6 +49,11 @@ func (hs *HeartbeatService) SetHeartbeat(uid string, heartbeat model.HeartbeatSt
 	return err
 }
 
+// Returns all online tutor ID stub
+func (hs *HeartbeatService) GetAllOnline() []string {
+	return []string{"", "", ""}
+}
+
 func (hs *HeartbeatService) GetHeartbeat(uid string) (model.Heartbeat, error) {
 	var heartbeat model.Heartbeat
 	err := hs.db.View(func(txn *badger.Txn) error {
