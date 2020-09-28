@@ -37,12 +37,12 @@ func (hs *HeartbeatService) SetHeartbeat(uid string, heartbeat model.HeartbeatSt
 
 	// By all accounts, for the record, err should always be nil
 	err := hs.db.Update(func(txn *badger.Txn) error {
-		err := txn.Set([]byte(uid+"-status"), []byte(heartbeat))
+		err := txn.Set([]byte("status-" + uid), []byte(heartbeat))
 		if err != nil {
 			return err
 		}
 
-		err = txn.Set([]byte(uid+"-time"), []byte(fmt.Sprintf("%d", heartbeatTime.Unix())))
+		err = txn.Set([]byte("time-" + uid), []byte(fmt.Sprintf("%d", heartbeatTime.Unix())))
 		return err
 	})
 
@@ -52,7 +52,7 @@ func (hs *HeartbeatService) SetHeartbeat(uid string, heartbeat model.HeartbeatSt
 func (hs *HeartbeatService) GetHeartbeat(uid string) (model.Heartbeat, error) {
 	var heartbeat model.Heartbeat
 	err := hs.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(uid + "-status"))
+		item, err := txn.Get([]byte("status" + uid))
 		if err == badger.ErrKeyNotFound {
 			return nil
 		} else if err != nil {
@@ -64,7 +64,7 @@ func (hs *HeartbeatService) GetHeartbeat(uid string) (model.Heartbeat, error) {
 			return err
 		}
 
-		item, err = txn.Get([]byte(uid + "-time"))
+		item, err = txn.Get([]byte("time-" + uid))
 		if err == badger.ErrKeyNotFound {
 			return nil
 		} else if err != nil {
