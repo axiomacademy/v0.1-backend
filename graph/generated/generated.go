@@ -75,10 +75,10 @@ type ComplexityRoot struct {
 	}
 
 	Notification struct {
-		Expiry       func(childComplexity int) int
 		Student      func(childComplexity int) int
 		Subject      func(childComplexity int) int
 		SubjectLevel func(childComplexity int) int
+		Token        func(childComplexity int) int
 	}
 
 	Query struct {
@@ -320,13 +320,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateHeartbeat(childComplexity, args["input"].(model.HeartbeatStatus)), true
 
-	case "Notification.expiry":
-		if e.complexity.Notification.Expiry == nil {
-			break
-		}
-
-		return e.complexity.Notification.Expiry(childComplexity), true
-
 	case "Notification.student":
 		if e.complexity.Notification.Student == nil {
 			break
@@ -347,6 +340,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Notification.SubjectLevel(childComplexity), true
+
+	case "Notification.token":
+		if e.complexity.Notification.Token == nil {
+			break
+		}
+
+		return e.complexity.Notification.Token(childComplexity), true
 
 	case "Query.checkForMatch":
 		if e.complexity.Query.CheckForMatch == nil {
@@ -668,7 +668,7 @@ type Notification {
   student: Student!
   subject: String!
   subject_level: String!
-  expiry: Int!
+  token: String!
 }
 
 type Heartbeat {
@@ -1749,7 +1749,7 @@ func (ec *executionContext) _Notification_subject_level(ctx context.Context, fie
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Notification_expiry(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
+func (ec *executionContext) _Notification_token(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1766,7 +1766,7 @@ func (ec *executionContext) _Notification_expiry(ctx context.Context, field grap
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Expiry, nil
+		return obj.Token, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1778,9 +1778,9 @@ func (ec *executionContext) _Notification_expiry(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_self(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4127,8 +4127,8 @@ func (ec *executionContext) _Notification(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "expiry":
-			out.Values[i] = ec._Notification_expiry(ctx, field, obj)
+		case "token":
+			out.Values[i] = ec._Notification_token(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

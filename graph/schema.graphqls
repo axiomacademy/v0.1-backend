@@ -61,7 +61,7 @@ type Notification {
   student: Student!
   subject: String!
   subject_level: String!
-  expiry: Int!
+  token: String!
 }
 
 type Heartbeat {

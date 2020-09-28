@@ -61,7 +61,7 @@ type Notification struct {
 	Student      *Student `json:"student"`
 	Subject      string   `json:"subject"`
 	SubjectLevel string   `json:"subject_level"`
-	Expiry       int      `json:"expiry"`
+	Token        string   `json:"token"`
 }
 
 type Student struct {
