@@ -99,6 +99,11 @@ input LoginInfo {
   password: String!
 }
 
+input MatchRequest {
+  subject: String!
+  subject_level: String!
+}
+
 ############################### QUERIES ####################################################
 
 type Query {
@@ -126,7 +131,7 @@ type Mutation {
   updateHeartbeat(input: HeartbeatStatus!): String!
 
   # Match Service
-  matchOnDemand(input: String!): String!
+  matchOnDemand(input: MatchRequest!): String!
   acceptMatch(input: String!): Lesson!
 }
 

@@ -34,6 +34,11 @@ type LoginInfo struct {
 	Password string `json:"password"`
 }
 
+type MatchRequest struct {
+	Subject      string `json:"subject"`
+	SubjectLevel string `json:"subject_level"`
+}
+
 type NewStudent struct {
 	Username   string `json:"username"`
 	FirstName  string `json:"firstName"`

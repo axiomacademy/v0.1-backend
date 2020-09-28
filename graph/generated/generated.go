@@ -69,7 +69,7 @@ type ComplexityRoot struct {
 		CreateTutor     func(childComplexity int, input model.NewTutor) int
 		LoginStudent    func(childComplexity int, input model.LoginInfo) int
 		LoginTutor      func(childComplexity int, input model.LoginInfo) int
-		MatchOnDemand   func(childComplexity int, input string) int
+		MatchOnDemand   func(childComplexity int, input model.MatchRequest) int
 		RefreshToken    func(childComplexity int) int
 		UpdateHeartbeat func(childComplexity int, input model.HeartbeatStatus) int
 	}
@@ -124,7 +124,7 @@ type MutationResolver interface {
 	LoginTutor(ctx context.Context, input model.LoginInfo) (string, error)
 	RefreshToken(ctx context.Context) (string, error)
 	UpdateHeartbeat(ctx context.Context, input model.HeartbeatStatus) (string, error)
-	MatchOnDemand(ctx context.Context, input string) (string, error)
+	MatchOnDemand(ctx context.Context, input model.MatchRequest) (string, error)
 	AcceptMatch(ctx context.Context, input string) (*model.Lesson, error)
 }
 type QueryResolver interface {
@@ -299,7 +299,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.MatchOnDemand(childComplexity, args["input"].(string)), true
+		return e.complexity.Mutation.MatchOnDemand(childComplexity, args["input"].(model.MatchRequest)), true
 
 	case "Mutation.refreshToken":
 		if e.complexity.Mutation.RefreshToken == nil {
@@ -706,6 +706,11 @@ input LoginInfo {
   password: String!
 }
 
+input MatchRequest {
+  subject: String!
+  subject_level: String!
+}
+
 ############################### QUERIES ####################################################
 
 type Query {
@@ -733,7 +738,7 @@ type Mutation {
   updateHeartbeat(input: HeartbeatStatus!): String!
 
   # Match Service
-  matchOnDemand(input: String!): String!
+  matchOnDemand(input: MatchRequest!): String!
   acceptMatch(input: String!): Lesson!
 }
 
@@ -827,10 +832,10 @@ func (ec *executionContext) field_Mutation_loginTutor_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_matchOnDemand_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 model.MatchRequest
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNMatchRequest2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐMatchRequest(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1589,7 +1594,7 @@ func (ec *executionContext) _Mutation_matchOnDemand(ctx context.Context, field g
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().MatchOnDemand(rctx, args["input"].(string))
+		return ec.resolvers.Mutation().MatchOnDemand(rctx, args["input"].(model.MatchRequest))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3745,6 +3750,34 @@ func (ec *executionContext) unmarshalInputLoginInfo(ctx context.Context, obj int
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputMatchRequest(ctx context.Context, obj interface{}) (model.MatchRequest, error) {
+	var it model.MatchRequest
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "subject":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("subject"))
+			it.Subject, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "subject_level":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("subject_level"))
+			it.SubjectLevel, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewStudent(ctx context.Context, obj interface{}) (model.NewStudent, error) {
 	var it model.NewStudent
 	var asMap = obj.(map[string]interface{})
@@ -4762,6 +4795,11 @@ func (ec *executionContext) marshalNLesson2ᚖgithubᚗcomᚋsolderneerᚋaxiom�
 
 func (ec *executionContext) unmarshalNLoginInfo2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐLoginInfo(ctx context.Context, v interface{}) (model.LoginInfo, error) {
 	res, err := ec.unmarshalInputLoginInfo(ctx, v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNMatchRequest2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐMatchRequest(ctx context.Context, v interface{}) (model.MatchRequest, error) {
+	res, err := ec.unmarshalInputMatchRequest(ctx, v)
 	return res, graphql.WrapErrorWithInputPath(ctx, err)
 }
 

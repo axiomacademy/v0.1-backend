@@ -52,7 +52,7 @@ func (ms *MatchService) openBadger(badgerDir string) (*badger.DB, error) {
 	}
 }
 
-func (ms *MatchService) updateMatchQueue(mid string, status MatchStatus) error {
+func (ms *MatchService) updateMatch(mid string, status MatchStatus) error {
 	err := ms.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set([]byte(mid), []byte(json.Marshal(status)))
 		return err
@@ -61,7 +61,16 @@ func (ms *MatchService) updateMatchQueue(mid string, status MatchStatus) error {
 	return err
 }
 
-func (ms *MatchService) getMatchQueue(mid string) (MatchStatus, error) {
+func (ms *MatchService) deleteMatch(mid string) error {
+	err := ms.db.Update(func(txn *badger.Txn) error {
+		err := txn.Delete([]byte(mid))
+		return err
+	})
+
+	return err
+}
+
+func (ms *MatchService) getMatch(mid string) (MatchStatus, error) {
 	var status MatchStatus
 
 	err := ms.db.View(func(txn *badger.Txn) error {
@@ -82,7 +91,7 @@ func (ms *MatchService) getMatchQueue(mid string) (MatchStatus, error) {
 	return status, err
 }
 
-func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_level string) error {
+func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_level string) (string, error) {
 	// Need to first collect top 10 students, ordered by affinity, send match notifications to each of them (timeout 20 seconds), once a match is found set match Id to a created lesson
 
 	// Generate match id
@@ -96,7 +105,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_leve
 	}
 
 	// Storing the match on the match queue
-	ms.updateMatchQueue(mid, mstatus)
+	err := ms.updateMatch(mid, mstatus)
 
 	go func() {
 		tids := []string{"1", "2", "3", "4", "5"}
@@ -112,7 +121,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_leve
 				Lid:    "",
 			}
 
-			ms.updateMatchQueue(mid, mstatus)
+			ms.updateMatch(mid, mstatus)
 			return
 		}
 
@@ -128,7 +137,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_leve
 			time.Sleep(time.Duration(30) * time.Second)
 
 			// Go and check the match queue for a match
-			match, err := ms.getMatchQueue(mid)
+			match, err := ms.getMatch(mid)
 			if err != nil {
 				mstatus := MatchStatus{
 					Status: "FAILED",
@@ -136,7 +145,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_leve
 					Lid:    "",
 				}
 
-				ms.updateMatchQueue(mid, mstatus)
+				ms.updateMatch(mid, mstatus)
 				return
 			}
 			if match.Status == "MATCHED" {
@@ -150,12 +159,12 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_leve
 			Lid:    "",
 		}
 
-		ms.updateMatchQueue(mid, mstatus)
+		ms.updateMatch(mid, mstatus)
 
 		return
 	}()
 
-	return nil
+	return mid, err
 }
 
 func (ms *MatchService) AcceptOnDemandMatch(t db.Tutor, token string) (*db.Lesson, error) {
@@ -165,7 +174,7 @@ func (ms *MatchService) AcceptOnDemandMatch(t db.Tutor, token string) (*db.Lesso
 	}
 
 	// Fetching the match
-	status, err := ms.getMatchQueue(mid)
+	status, err := ms.getMatch(mid)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +188,7 @@ func (ms *MatchService) AcceptOnDemandMatch(t db.Tutor, token string) (*db.Lesso
 	// Updating match queue
 	status.Lid = l.Id
 	status.Status = "MATCHED"
-	err = ms.updateMatchQueue(mid, status)
+	err = ms.updateMatch(mid, status)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +199,7 @@ func (ms *MatchService) AcceptOnDemandMatch(t db.Tutor, token string) (*db.Lesso
 func (ms *MatchService) GetOnDemandMatch(s db.Student, mid string) (*db.Lesson, error) {
 
 	// Fetching the match
-	status, err := ms.getMatchQueue(mid)
+	status, err := ms.getMatch(mid)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +219,7 @@ func (ms *MatchService) GetOnDemandMatch(s db.Student, mid string) (*db.Lesson, 
 		if err != nil {
 			return nil, err
 		}
-
+		ms.deleteMatch(mid)
 		return &l, nil
 	}
 

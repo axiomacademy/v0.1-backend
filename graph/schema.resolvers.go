@@ -147,12 +147,39 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 	return token, nil
 }
 
-func (r *mutationResolver) MatchOnDemand(ctx context.Context, input string) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) MatchOnDemand(ctx context.Context, input model.MatchRequest) (string, error) {
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if utype == "s" {
+		s := u.(db.Student)
+		mid, err := r.Ms.MatchOnDemand(s, input.Subject, input.SubjectLevel)
+		return mid, err
+	} else if utype == "t" {
+		return "", errors.New("Only students can request for matches")
+	} else {
+		return "", errors.New("Unauthorised, please log in")
+	}
 }
 
 func (r *mutationResolver) AcceptMatch(ctx context.Context, input string) (*model.Lesson, error) {
-	panic(fmt.Errorf("not implemented"))
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if utype == "s" {
+		return nil, errors.New("Only students can request for matches")
+	} else if utype == "t" {
+		t := u.(db.Tutor)
+		l, err := r.Ms.AcceptOnDemandMatch(t, input)
+		ml := r.Repo.ToLessonModel(*l)
+		return &ml, err
+	} else {
+		return nil, errors.New("Unauthorised, please log in")
+	}
 }
 
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
@@ -215,7 +242,21 @@ func (r *queryResolver) Heartbeat(ctx context.Context, input string) (*model.Hea
 }
 
 func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model.Lesson, error) {
-	panic(fmt.Errorf("not implemented"))
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if utype == "s" {
+		s := u.(db.Student)
+		l, err := r.Ms.GetOnDemandMatch(s, input)
+		ml := r.Repo.ToLessonModel(*l)
+		return &ml, err
+	} else if utype == "t" {
+		return nil, errors.New("Only students can request for matches")
+	} else {
+		return nil, errors.New("Unauthorised, please log in")
+	}
 }
 
 func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {
