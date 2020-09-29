@@ -1,5 +1,7 @@
-CREATE TYPE subject AS ENUM ('PHYSICS', 'ECONOMICS', 'MATHEMATICS', 'CHEMISTRY', 'BIOLOGY');
-CREATE TYPE subject_level AS ENUM ('A LEVELS', 'O LEVELS', 'IB');
+CREATE TYPE subject AS (
+  name TEXT,
+  'level' TEXT
+);
 
 CREATE TABLE IF NOT EXISTS tutors (
   id VARCHAR(38) NOT NULL UNIQUE,
@@ -13,7 +15,8 @@ CREATE TABLE IF NOT EXISTS tutors (
   bio TEXT,
   rating INT NOT NULL,
   education TEXT [],
-  subjects subject [],
-  subject_levels subject_level [],
+  subject subject,
+  status VARCHAR(10) NOT NULL DEFAULT 'OFFLINE',
+  last_seen TIMESTAMP,
   PRIMARY KEY(id)
 );

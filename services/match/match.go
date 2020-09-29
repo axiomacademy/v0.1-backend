@@ -1,8 +1,8 @@
 package match
 
 import (
+	"encoding/json"
 	"errors"
-	"json"
 	"log"
 	"time"
 
@@ -19,7 +19,7 @@ import (
 type MatchStatus struct {
 	Status       string `json:"status"`
 	Sid          string `json:"student_id"`
-	Subject      string `json:"subject"`
+	SubjectName  string `json:"subject_name"`
 	SubjectLevel string `json:"subject_level"`
 	Lid          string `json:"lesson_id"`
 }
@@ -54,7 +54,12 @@ func (ms *MatchService) openBadger(badgerDir string) (*badger.DB, error) {
 
 func (ms *MatchService) updateMatch(mid string, status MatchStatus) error {
 	err := ms.db.Update(func(txn *badger.Txn) error {
-		err := txn.Set([]byte(mid), []byte(json.Marshal(status)))
+		raw, err := json.Marshal(status)
+		if err != nil {
+			return err
+		}
+
+		err = txn.Set([]byte(mid), raw)
 		return err
 	})
 
@@ -91,7 +96,7 @@ func (ms *MatchService) getMatch(mid string) (MatchStatus, error) {
 	return status, err
 }
 
-func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_level string) (string, error) {
+func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string, error) {
 	// Need to first collect top 10 students, ordered by affinity, send match notifications to each of them (timeout 20 seconds), once a match is found set match Id to a created lesson
 
 	// Generate match id
@@ -99,8 +104,8 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_leve
 	mstatus := MatchStatus{
 		Status:       "MATCHING",
 		Sid:          s.Id,
-		Subject:      subject,
-		SubjectLevel: subject_level,
+		SubjectName:  subject.Name,
+		SubjectLevel: subject.Level,
 		Lid:          "",
 	}
 
@@ -110,7 +115,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_leve
 	go func() {
 		tids := []string{"1", "2", "3", "4", "5"}
 
-		smodel := ms.Repo.ToStudentModel(s)
+		mstudent := ms.Repo.ToStudentModel(s)
 		token, err := ms.generateMatchToken(mid)
 
 		// Error generating token
@@ -126,11 +131,11 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject string, subject_leve
 		}
 
 		for _, tid := range tids {
+			msubject := subject.ToSubjectModel()
 			n := model.Notification{
-				Student:      &smodel,
-				Subject:      subject,
-				SubjectLevel: subject_level,
-				Token:        token,
+				Student: &mstudent,
+				Subject: &msubject,
+				Token:   token,
 			}
 
 			ms.Ns.SendNotification(n, tid)
@@ -180,7 +185,8 @@ func (ms *MatchService) AcceptOnDemandMatch(t db.Tutor, token string) (*db.Lesso
 	}
 
 	// Creating the lesson
-	l, err := ms.Repo.CreateLesson(status.Subject, status.SubjectLevel, t.Id, status.Sid, 0, time.Now())
+	subject := db.Subject{Name: status.SubjectName, Level: status.SubjectLevel}
+	l, err := ms.Repo.CreateLesson(subject, t.Id, status.Sid, 0, time.Now())
 	if err != nil {
 		return nil, err
 	}

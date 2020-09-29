@@ -18,15 +18,14 @@ type Heartbeat struct {
 }
 
 type Lesson struct {
-	ID           string   `json:"id"`
-	Subject      string   `json:"subject"`
-	SubjectLevel string   `json:"subjectLevel"`
-	Summary      string   `json:"summary"`
-	Tutor        *Tutor   `json:"tutor"`
-	Student      *Student `json:"student"`
-	Duration     int      `json:"duration"`
-	Date         string   `json:"date"`
-	Chat         string   `json:"chat"`
+	ID       string   `json:"id"`
+	Subject  *Subject `json:"subject"`
+	Summary  string   `json:"summary"`
+	Tutor    *Tutor   `json:"tutor"`
+	Student  *Student `json:"student"`
+	Duration int      `json:"duration"`
+	Date     string   `json:"date"`
+	Chat     string   `json:"chat"`
 }
 
 type LoginInfo struct {
@@ -35,8 +34,7 @@ type LoginInfo struct {
 }
 
 type MatchRequest struct {
-	Subject      string `json:"subject"`
-	SubjectLevel string `json:"subject_level"`
+	Subject *NewSubject `json:"subject"`
 }
 
 type NewStudent struct {
@@ -48,25 +46,28 @@ type NewStudent struct {
 	ProfilePic string `json:"profilePic"`
 }
 
+type NewSubject struct {
+	Name  SubjectName  `json:"name"`
+	Level SubjectLevel `json:"level"`
+}
+
 type NewTutor struct {
-	Username      string   `json:"username"`
-	FirstName     string   `json:"firstName"`
-	LastName      string   `json:"lastName"`
-	Email         string   `json:"email"`
-	Password      string   `json:"password"`
-	ProfilePic    string   `json:"profilePic"`
-	HourlyRate    int      `json:"hourlyRate"`
-	Bio           string   `json:"bio"`
-	Education     []string `json:"education"`
-	Subjects      []string `json:"subjects"`
-	SubjectLevels []string `json:"subjectLevels"`
+	Username   string      `json:"username"`
+	FirstName  string      `json:"firstName"`
+	LastName   string      `json:"lastName"`
+	Email      string      `json:"email"`
+	Password   string      `json:"password"`
+	ProfilePic string      `json:"profilePic"`
+	HourlyRate int         `json:"hourlyRate"`
+	Bio        string      `json:"bio"`
+	Education  []string    `json:"education"`
+	Subject    *NewSubject `json:"subject"`
 }
 
 type Notification struct {
-	Student      *Student `json:"student"`
-	Subject      string   `json:"subject"`
-	SubjectLevel string   `json:"subject_level"`
-	Token        string   `json:"token"`
+	Student *Student `json:"student"`
+	Subject *Subject `json:"subject"`
+	Token   string   `json:"token"`
 }
 
 type Student struct {
@@ -80,19 +81,23 @@ type Student struct {
 
 func (Student) IsUser() {}
 
+type Subject struct {
+	Name  SubjectName  `json:"name"`
+	Level SubjectLevel `json:"level"`
+}
+
 type Tutor struct {
-	ID            string   `json:"id"`
-	Username      string   `json:"username"`
-	FirstName     string   `json:"firstName"`
-	LastName      string   `json:"lastName"`
-	Email         string   `json:"email"`
-	ProfilePic    string   `json:"profilePic"`
-	HourlyRate    int      `json:"hourlyRate"`
-	Bio           string   `json:"bio"`
-	Rating        int      `json:"rating"`
-	Education     []string `json:"education"`
-	Subjects      []string `json:"subjects"`
-	SubjectLevels []string `json:"subjectLevels"`
+	ID         string   `json:"id"`
+	Username   string   `json:"username"`
+	FirstName  string   `json:"firstName"`
+	LastName   string   `json:"lastName"`
+	Email      string   `json:"email"`
+	ProfilePic string   `json:"profilePic"`
+	HourlyRate int      `json:"hourlyRate"`
+	Bio        string   `json:"bio"`
+	Rating     int      `json:"rating"`
+	Education  []string `json:"education"`
+	Subject    *Subject `json:"subject"`
 }
 
 func (Tutor) IsUser() {}
@@ -137,5 +142,95 @@ func (e *HeartbeatStatus) UnmarshalGQL(v interface{}) error {
 }
 
 func (e HeartbeatStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SubjectLevel string
+
+const (
+	SubjectLevelAlevels SubjectLevel = "ALEVELS"
+	SubjectLevelOlevels SubjectLevel = "OLEVELS"
+	SubjectLevelIb      SubjectLevel = "IB"
+)
+
+var AllSubjectLevel = []SubjectLevel{
+	SubjectLevelAlevels,
+	SubjectLevelOlevels,
+	SubjectLevelIb,
+}
+
+func (e SubjectLevel) IsValid() bool {
+	switch e {
+	case SubjectLevelAlevels, SubjectLevelOlevels, SubjectLevelIb:
+		return true
+	}
+	return false
+}
+
+func (e SubjectLevel) String() string {
+	return string(e)
+}
+
+func (e *SubjectLevel) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SubjectLevel(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SubjectLevel", str)
+	}
+	return nil
+}
+
+func (e SubjectLevel) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SubjectName string
+
+const (
+	SubjectNamePhysics     SubjectName = "PHYSICS"
+	SubjectNameEconomics   SubjectName = "ECONOMICS"
+	SubjectNameMathematics SubjectName = "MATHEMATICS"
+	SubjectNameChemistry   SubjectName = "CHEMISTRY"
+	SubjectNameBiology     SubjectName = "BIOLOGY"
+)
+
+var AllSubjectName = []SubjectName{
+	SubjectNamePhysics,
+	SubjectNameEconomics,
+	SubjectNameMathematics,
+	SubjectNameChemistry,
+	SubjectNameBiology,
+}
+
+func (e SubjectName) IsValid() bool {
+	switch e {
+	case SubjectNamePhysics, SubjectNameEconomics, SubjectNameMathematics, SubjectNameChemistry, SubjectNameBiology:
+		return true
+	}
+	return false
+}
+
+func (e SubjectName) String() string {
+	return string(e)
+}
+
+func (e *SubjectName) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SubjectName(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SubjectName", str)
+	}
+	return nil
+}
+
+func (e SubjectName) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

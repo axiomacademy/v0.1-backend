@@ -18,6 +18,7 @@ import (
 	"github.com/solderneer/axiom-backend/middlewares"
 
 	"github.com/solderneer/axiom-backend/services/heartbeat"
+	"github.com/solderneer/axiom-backend/services/match"
 	"github.com/solderneer/axiom-backend/services/notifs"
 )
 
@@ -43,12 +44,18 @@ func main() {
 	hs.InitHeartbeat(heartbeatDir)
 	defer hs.Close()
 
+	ms := match.MatchService{}
+	matchQueue := os.Getenv("MATCH_DIR")
+	ms.Init(matchQueue)
+	defer ms.Close()
+
 	// Binding services to resolver
 	resolver := graph.Resolver{
 		Secret: "password",
 		Repo:   &repo,
 		Ns:     &ns,
 		Hs:     &hs,
+		Ms:     &ms,
 	}
 
 	graphSrv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver}))

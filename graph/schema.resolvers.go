@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
@@ -61,7 +60,9 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 	}
 
 	// DEFAULT RATING IS 3
-	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, input.Subjects, input.SubjectLevels)
+	// Create db.Subject type
+	subject := db.Subject{Name: input.Subject.Name.String(), Level: input.Subject.Level.String()}
+	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, subject)
 	if err != nil {
 		return "", err
 	}
@@ -155,7 +156,8 @@ func (r *mutationResolver) MatchOnDemand(ctx context.Context, input model.MatchR
 
 	if utype == "s" {
 		s := u.(db.Student)
-		mid, err := r.Ms.MatchOnDemand(s, input.Subject, input.SubjectLevel)
+		subject := db.Subject{Name: input.Subject.Name.String(), Level: input.Subject.Level.String()}
+		mid, err := r.Ms.MatchOnDemand(s, subject)
 		return mid, err
 	} else if utype == "t" {
 		return "", errors.New("Only students can request for matches")
