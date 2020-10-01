@@ -17,7 +17,6 @@ import (
 	"github.com/solderneer/axiom-backend/graph/model"
 	"github.com/solderneer/axiom-backend/middlewares"
 
-	"github.com/solderneer/axiom-backend/services/heartbeat"
 	"github.com/solderneer/axiom-backend/services/notifs"
 )
 
@@ -38,17 +37,11 @@ func main() {
 	// Initialising all services
 	ns := notifs.NotifService{Nchans: map[string]chan *model.Notification{}, Nmutex: sync.Mutex{}}
 
-	hs := heartbeat.HeartbeatService{}
-	heartbeatDir := os.Getenv("HEARTBEAT_DIR") // Defaults to in-memory otherwise
-	hs.InitHeartbeat(heartbeatDir)
-	defer hs.Close()
-
 	// Binding services to resolver
 	resolver := graph.Resolver{
 		Secret: "password",
 		Repo:   &repo,
 		Ns:     &ns,
-		Hs:     &hs,
 	}
 
 	graphSrv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver}))

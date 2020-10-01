@@ -1,7 +1,5 @@
 CREATE TYPE subject AS ENUM ('PHYSICS', 'ECONOMICS', 'MATHEMATICS', 'CHEMISTRY', 'BIOLOGY');
 
-CREATE TYPE status AS ENUM ('AVAILABLE', 'BUSY')
-
 CREATE TABLE IF NOT EXISTS tutors (
   id VARCHAR(38) NOT NULL UNIQUE,
   username TEXT NOT NULL UNIQUE,
@@ -14,8 +12,8 @@ CREATE TABLE IF NOT EXISTS tutors (
   bio TEXT,
   rating INT NOT NULL,
   education TEXT [],
-  subjects subject [],
-	status status,
+  subjects TEXT [],
+	status VARCHAR(12),
 	last_seen TIMESTAMP,
   PRIMARY KEY(id)
 );

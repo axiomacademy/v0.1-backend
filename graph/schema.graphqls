@@ -14,9 +14,8 @@ interface User {
 scalar Date
 
 enum HeartbeatStatus {
-  ONLINE
-  ACTIVE
-  OFFLINE
+  AVAILABLE
+  UNAVAILABLE
 }
 
 ############################## TYPES #####################################################
@@ -99,9 +98,6 @@ input LoginInfo {
 type Query {
   self: User!,
   lessons: [Lesson!]!
-
-  # TODO: REMOVE AT SOME POINT IT IS ONLY FOR TESTING
-  heartbeat(input: String!): Heartbeat!
 }
 
 ############################### MUTATIONS ####################################################
