@@ -96,9 +96,8 @@ func (ms *MatchService) getMatch(mid string) (MatchStatus, error) {
 	return status, err
 }
 
+// Need to first collect top 10 students, ordered by affinity, send match notifications to each of them (timeout 20 seconds), once a match is found set match Id to a created lesson
 func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string, error) {
-	// Need to first collect top 10 students, ordered by affinity, send match notifications to each of them (timeout 20 seconds), once a match is found set match Id to a created lesson
-
 	// Generate match id
 	mid := uuid.New()
 	mstatus := MatchStatus{

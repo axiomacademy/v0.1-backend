@@ -37,7 +37,8 @@ func main() {
 	defer repo.Close()
 
 	// Initialising all services
-	ns := notifs.NotifService{Nchans: map[string]chan *model.Notification{}, Nmutex: sync.Mutex{}}
+	ns := notifs.NotifService{}
+	ns.Init()
 
 	hs := heartbeat.HeartbeatService{}
 	heartbeatDir := os.Getenv("HEARTBEAT_DIR") // Defaults to in-memory otherwise
