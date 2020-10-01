@@ -41,7 +41,7 @@ func (r *Repository) CreateStudent(username string, firstName string, lastName s
 
 	defer tx.Rollback(context.Background())
 
-	sql := `INSERT INTO students (id, username, first_name, last_name, email, hashed_password, profile_pic) VALUES ($1, $2, $3, $4)`
+	sql := `INSERT INTO students (id, username, first_name, last_name, email, hashed_password, profile_pic) VALUES ($1, $2, $3, $4, $5, $6, $7)`
 	_, err = tx.Exec(context.Background(), sql, s.Id, s.Username, s.FirstName, s.LastName, s.Email, s.HashedPassword, s.ProfilePic)
 
 	if err != nil {

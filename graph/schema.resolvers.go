@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
@@ -14,7 +15,6 @@ import (
 )
 
 func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStudent) (string, error) {
-
 	// Hashing password
 	hashedPassword, err := auth.HashPassword(input.Password)
 	if err != nil {
@@ -35,7 +35,6 @@ func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStu
 }
 
 func (r *mutationResolver) LoginStudent(ctx context.Context, input model.LoginInfo) (string, error) {
-
 	s, err := r.Repo.GetStudentByUsername(input.Username)
 	if err != nil {
 		return "", errors.New("Invalid username")
@@ -55,7 +54,6 @@ func (r *mutationResolver) LoginStudent(ctx context.Context, input model.LoginIn
 }
 
 func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor) (string, error) {
-
 	// Hashing password
 	hashedPassword, err := auth.HashPassword(input.Password)
 	if err != nil {
@@ -63,7 +61,7 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 	}
 
 	// DEFAULT RATING IS 3
-	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, input.Subjects)
+	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, input.Subjects, "AVAILABLE", time.Now())
 	if err != nil {
 		return "", err
 	}
@@ -77,7 +75,6 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 }
 
 func (r *mutationResolver) LoginTutor(ctx context.Context, input model.LoginInfo) (string, error) {
-
 	t, err := r.Repo.GetTutorByUsername(input.Username)
 	if err != nil {
 		return "", errors.New("Invalid username")
@@ -120,6 +117,33 @@ func (r *mutationResolver) RefreshToken(ctx context.Context) (string, error) {
 		}
 	} else {
 		return "", errors.New("Unauthorised, please log in")
+	}
+
+	return token, nil
+}
+
+func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.HeartbeatStatus) (string, error) {
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if utype != "t" {
+		return "", errors.New("Invalid user type for Heartbeat")
+	}
+
+	t := u.(db.Tutor)
+	t.Status = input.String()
+	t.LastSeen = time.Now()
+
+	err = r.Repo.UpdateTutor(t)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := auth.GenerateToken(t.Id, r.Secret)
+	if err != nil {
+		return "", errors.New("Error generating token")
 	}
 
 	return token, nil
@@ -175,11 +199,33 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	return lessons, nil
 }
 
+func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {
+	// Creating the channel
+	nchan := make(chan *model.Notification, 1)
+	r.Ns.Nmutex.Lock()
+	r.Ns.Nchans[user] = nchan
+	r.Ns.Nmutex.Unlock()
+
+	// Delete channel when done
+	go func() {
+		<-ctx.Done()
+		r.Ns.Nmutex.Lock()
+		delete(r.Ns.Nchans, user)
+		r.Ns.Nmutex.Unlock()
+	}()
+
+	return nchan, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// Subscription returns generated.SubscriptionResolver implementation.
+func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }

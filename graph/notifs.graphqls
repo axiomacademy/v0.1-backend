@@ -1,8 +1,0 @@
-type Notification {
-  title: String!
-  description: String!
-}
-
-type Subscription {
-  subscribeNotifications(user: String!): Notification!
-}

@@ -2,8 +2,19 @@
 
 package model
 
+import (
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type User interface {
 	IsUser()
+}
+
+type Heartbeat struct {
+	Status   HeartbeatStatus `json:"status"`
+	LastSeen int             `json:"lastSeen"`
 }
 
 type Lesson struct {
@@ -75,3 +86,44 @@ type Tutor struct {
 }
 
 func (Tutor) IsUser() {}
+
+type HeartbeatStatus string
+
+const (
+	HeartbeatStatusAvailable   HeartbeatStatus = "AVAILABLE"
+	HeartbeatStatusUnavailable HeartbeatStatus = "UNAVAILABLE"
+)
+
+var AllHeartbeatStatus = []HeartbeatStatus{
+	HeartbeatStatusAvailable,
+	HeartbeatStatusUnavailable,
+}
+
+func (e HeartbeatStatus) IsValid() bool {
+	switch e {
+	case HeartbeatStatusAvailable, HeartbeatStatusUnavailable:
+		return true
+	}
+	return false
+}
+
+func (e HeartbeatStatus) String() string {
+	return string(e)
+}
+
+func (e *HeartbeatStatus) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = HeartbeatStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid HeartbeatStatus", str)
+	}
+	return nil
+}
+
+func (e HeartbeatStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}

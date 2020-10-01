@@ -46,6 +46,11 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Heartbeat struct {
+		LastSeen func(childComplexity int) int
+		Status   func(childComplexity int) int
+	}
+
 	Lesson struct {
 		Chat     func(childComplexity int) int
 		Date     func(childComplexity int) int
@@ -58,11 +63,12 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateStudent func(childComplexity int, input model.NewStudent) int
-		CreateTutor   func(childComplexity int, input model.NewTutor) int
-		LoginStudent  func(childComplexity int, input model.LoginInfo) int
-		LoginTutor    func(childComplexity int, input model.LoginInfo) int
-		RefreshToken  func(childComplexity int) int
+		CreateStudent   func(childComplexity int, input model.NewStudent) int
+		CreateTutor     func(childComplexity int, input model.NewTutor) int
+		LoginStudent    func(childComplexity int, input model.LoginInfo) int
+		LoginTutor      func(childComplexity int, input model.LoginInfo) int
+		RefreshToken    func(childComplexity int) int
+		UpdateHeartbeat func(childComplexity int, input model.HeartbeatStatus) int
 	}
 
 	Notification struct {
@@ -109,6 +115,7 @@ type MutationResolver interface {
 	CreateTutor(ctx context.Context, input model.NewTutor) (string, error)
 	LoginTutor(ctx context.Context, input model.LoginInfo) (string, error)
 	RefreshToken(ctx context.Context) (string, error)
+	UpdateHeartbeat(ctx context.Context, input model.HeartbeatStatus) (string, error)
 }
 type QueryResolver interface {
 	Self(ctx context.Context) (model.User, error)
@@ -132,6 +139,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Heartbeat.lastSeen":
+		if e.complexity.Heartbeat.LastSeen == nil {
+			break
+		}
+
+		return e.complexity.Heartbeat.LastSeen(childComplexity), true
+
+	case "Heartbeat.status":
+		if e.complexity.Heartbeat.Status == nil {
+			break
+		}
+
+		return e.complexity.Heartbeat.Status(childComplexity), true
 
 	case "Lesson.chat":
 		if e.complexity.Lesson.Chat == nil {
@@ -243,6 +264,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RefreshToken(childComplexity), true
+
+	case "Mutation.updateHeartbeat":
+		if e.complexity.Mutation.UpdateHeartbeat == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateHeartbeat_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateHeartbeat(childComplexity, args["input"].(model.HeartbeatStatus)), true
 
 	case "Notification.description":
 		if e.complexity.Notification.Description == nil {
@@ -484,15 +517,6 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "graph/notification.graphqls", Input: `type Notification {
-  title: String!
-  description: String!
-}
-
-type Subscription {
-  subscribeNotifications(user: String!): Notification!
-}
-`, BuiltIn: false},
 	{Name: "graph/schema.graphqls", Input: `# GraphQL schema example
 #
 # https://gqlgen.com/getting-started/
@@ -507,6 +531,11 @@ interface User {
 }
 
 scalar Date
+
+enum HeartbeatStatus {
+  AVAILABLE
+  UNAVAILABLE
+}
 
 ############################## TYPES #####################################################
 
@@ -542,6 +571,16 @@ type Lesson {
   duration: Int!
   date: Date!
   chat: String!
+}
+
+type Notification {
+  title: String!
+  description: String!
+}
+
+type Heartbeat {
+  status: HeartbeatStatus!
+  lastSeen: Int!
 }
 
 #################################### INPUTS ################################################
@@ -585,9 +624,17 @@ type Query {
 type Mutation {
   createStudent(input: NewStudent!): String!
   loginStudent(input: LoginInfo!): String!
+
   createTutor(input: NewTutor!): String!
   loginTutor(input: LoginInfo!): String!
   refreshToken: String!
+
+  updateHeartbeat(input: HeartbeatStatus!): String!
+}
+
+############################### MUTATIONS ####################################################
+type Subscription {
+  subscribeNotifications(user: String!): Notification!
 }
 `, BuiltIn: false},
 }
@@ -649,6 +696,21 @@ func (ec *executionContext) field_Mutation_loginTutor_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
 		arg0, err = ec.unmarshalNLoginInfo2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐLoginInfo(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateHeartbeat_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.HeartbeatStatus
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNHeartbeatStatus2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐHeartbeatStatus(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -724,6 +786,74 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Heartbeat_status(ctx context.Context, field graphql.CollectedField, obj *model.Heartbeat) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Heartbeat",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.HeartbeatStatus)
+	fc.Result = res
+	return ec.marshalNHeartbeatStatus2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐHeartbeatStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Heartbeat_lastSeen(ctx context.Context, field graphql.CollectedField, obj *model.Heartbeat) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Heartbeat",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastSeen, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _Lesson_id(ctx context.Context, field graphql.CollectedField, obj *model.Lesson) (ret graphql.Marshaler) {
 	defer func() {
@@ -1179,6 +1309,47 @@ func (ec *executionContext) _Mutation_refreshToken(ctx context.Context, field gr
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().RefreshToken(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateHeartbeat(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateHeartbeat_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateHeartbeat(rctx, args["input"].(model.HeartbeatStatus))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3295,6 +3466,38 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 
 // region    **************************** object.gotpl ****************************
 
+var heartbeatImplementors = []string{"Heartbeat"}
+
+func (ec *executionContext) _Heartbeat(ctx context.Context, sel ast.SelectionSet, obj *model.Heartbeat) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, heartbeatImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Heartbeat")
+		case "status":
+			out.Values[i] = ec._Heartbeat_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "lastSeen":
+			out.Values[i] = ec._Heartbeat_lastSeen(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var lessonImplementors = []string{"Lesson"}
 
 func (ec *executionContext) _Lesson(ctx context.Context, sel ast.SelectionSet, obj *model.Lesson) graphql.Marshaler {
@@ -3394,6 +3597,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "refreshToken":
 			out.Values[i] = ec._Mutation_refreshToken(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateHeartbeat":
+			out.Values[i] = ec._Mutation_updateHeartbeat(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3920,6 +4128,16 @@ func (ec *executionContext) marshalNDate2string(ctx context.Context, sel ast.Sel
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNHeartbeatStatus2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐHeartbeatStatus(ctx context.Context, v interface{}) (model.HeartbeatStatus, error) {
+	var res model.HeartbeatStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNHeartbeatStatus2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐHeartbeatStatus(ctx context.Context, sel ast.SelectionSet, v model.HeartbeatStatus) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {

@@ -51,7 +51,7 @@ func main() {
 	r.Handle("/query", graphSrv)
 
 	// Auth middleware
-	amw := middlewares.AuthMiddleware{Secret: "password"}
+	amw := middlewares.AuthMiddleware{Secret: "password", Repo: &repo}
 	r.Use(amw.Middleware)
 
 	httpSrv := &http.Server{

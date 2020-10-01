@@ -13,6 +13,11 @@ interface User {
 
 scalar Date
 
+enum HeartbeatStatus {
+  AVAILABLE
+  UNAVAILABLE
+}
+
 ############################## TYPES #####################################################
 
 type Student implements User {
@@ -47,6 +52,16 @@ type Lesson {
   duration: Int!
   date: Date!
   chat: String!
+}
+
+type Notification {
+  title: String!
+  description: String!
+}
+
+type Heartbeat {
+  status: HeartbeatStatus!
+  lastSeen: Int!
 }
 
 #################################### INPUTS ################################################
@@ -90,7 +105,15 @@ type Query {
 type Mutation {
   createStudent(input: NewStudent!): String!
   loginStudent(input: LoginInfo!): String!
+
   createTutor(input: NewTutor!): String!
   loginTutor(input: LoginInfo!): String!
   refreshToken: String!
+
+  updateHeartbeat(input: HeartbeatStatus!): String!
+}
+
+############################### MUTATIONS ####################################################
+type Subscription {
+  subscribeNotifications(user: String!): Notification!
 }
