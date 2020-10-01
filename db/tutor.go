@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgtype"
 	"github.com/pborman/uuid"
@@ -21,9 +22,11 @@ type Tutor struct {
 	Rating         int
 	Education      []string
 	Subjects       []string
+	Status				 string
+	LastSeen			 time.Time
 }
 
-func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string) (Tutor, error) {
+func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string, status string, lastSeen time.Time) (Tutor, error) {
 
 	var t Tutor
 
@@ -40,6 +43,8 @@ func (r *Repository) CreateTutor(username string, firstName string, lastName str
 	t.Bio = bio
 	t.Education = education
 	t.Subjects = subjects
+	t.Status = status
+	t.LastSeen = lastSeen
 
 	tx, err := r.DbPool.Begin(context.Background())
 	if err != nil {
@@ -48,8 +53,8 @@ func (r *Repository) CreateTutor(username string, firstName string, lastName str
 
 	defer tx.Rollback(context.Background())
 
-	sql := `INSERT INTO tutors (id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, rating, bio, education, subjects) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
-	_, err = tx.Exec(context.Background(), sql, t.Id, t.Username, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Rating, t.Bio, t.Education, t.Subjects)
+	sql := `INSERT INTO tutors (id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, rating, bio, education, subjects, status, last_seen) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
+	_, err = tx.Exec(context.Background(), sql, t.Id, t.Username, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Rating, t.Bio, t.Education, t.Subjects, t.Status, t.LastSeen)
 
 	if err != nil {
 		return t, err
@@ -71,8 +76,8 @@ func (r *Repository) UpdateTutor(t Tutor) error {
 
 	defer tx.Rollback(context.Background())
 
-	sql := `UPDATE tutors SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, hourly_rate = $7, bio = $8, rating = $9, education = $10, subjects = $11 WHERE id = $1`
-	_, err = tx.Exec(context.Background(), sql, t.Id, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Bio, t.Rating, t.Education, t.Subjects)
+	sql := `UPDATE tutors SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, hourly_rate = $7, bio = $8, rating = $9, education = $10, subjects = $11, status = $12, last_seen = $13 WHERE id = $1`
+	_, err = tx.Exec(context.Background(), sql, t.Id, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Bio, t.Rating, t.Education, t.Subjects, t.Status, t.LastSeen)
 
 	if err != nil {
 		return err
@@ -114,9 +119,10 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 }
 
 func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
-	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE username = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects, status, last_seen FROM tutors WHERE username = $1`
 
 	var subjects pgtype.EnumArray
+	var lastSeen pgtype.Timestamptz
 	var t Tutor
 
 	if err := r.DbPool.QueryRow(context.Background(), sql, username).Scan(
@@ -131,12 +137,15 @@ func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 		&t.Bio,
 		&t.Rating,
 		&t.Education,
-		&subjects); err != nil {
+		&subjects,
+		&t.Status,
+		&lastSeen); err != nil {
 		return t, err
 	}
 
 	// Populating subjects separately because it is an enum array
 	subjects.AssignTo(&t.Subjects)
+	lastSeen.AssignTo(&t.LastSeen)
 	return t, nil
 }
 

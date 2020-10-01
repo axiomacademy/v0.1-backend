@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
@@ -60,7 +61,7 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 	}
 
 	// DEFAULT RATING IS 3
-	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, input.Subjects)
+	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, input.Subjects, "AVAILABLE", time.Now())
 	if err != nil {
 		return "", err
 	}
@@ -132,8 +133,10 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 	}
 
 	t := u.(db.Tutor)
+	t.Status = string(input)
+	t.LastSeen = time.Now()
 
-	err = r.Hs.SetHeartbeat(t.Id, input)
+	err = r.Repo.UpdateTutor(t)
 	if err != nil {
 		return "", err
 	}
