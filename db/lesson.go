@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/jackc/pgtype"
 	"github.com/pborman/uuid"
 	"github.com/solderneer/axiom-backend/graph/model"
 )
@@ -90,12 +91,15 @@ func (r *Repository) UpdateLesson(l Lesson) error {
 }
 
 func (r *Repository) GetLessonById(id string) (Lesson, error) {
+	var date pgtype.Timestamptz
 	var l Lesson
 	sql := `SELECT id, subject, summary, tutor, student, duration, date, chat FROM lessons WHERE id = $1`
 
-	if err := r.dbPool.QueryRow(context.Background(), sql, id).Scan(&l.Id, &l.Subject, &l.Summary, &l.Tutor, &l.Student, &l.Duration, &l.Date, &l.Chat); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, id).Scan(&l.Id, &l.Subject, &l.Summary, &l.Tutor, &l.Student, &l.Duration, &date, &l.Chat); err != nil {
 		return l, err
 	}
+
+	date.AssignTo(&l.Date)
 
 	return l, nil
 }

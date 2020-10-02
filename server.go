@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -14,10 +13,8 @@ import (
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph"
 	"github.com/solderneer/axiom-backend/graph/generated"
-	"github.com/solderneer/axiom-backend/graph/model"
 	"github.com/solderneer/axiom-backend/middlewares"
 
-	"github.com/solderneer/axiom-backend/services/heartbeat"
 	"github.com/solderneer/axiom-backend/services/match"
 	"github.com/solderneer/axiom-backend/services/notifs"
 )
@@ -40,11 +37,6 @@ func main() {
 	ns := notifs.NotifService{}
 	ns.Init()
 
-	hs := heartbeat.HeartbeatService{}
-	heartbeatDir := os.Getenv("HEARTBEAT_DIR") // Defaults to in-memory otherwise
-	hs.InitHeartbeat(heartbeatDir)
-	defer hs.Close()
-
 	ms := match.MatchService{}
 	matchQueue := os.Getenv("MATCH_DIR")
 	ms.Init(matchQueue)
@@ -55,7 +47,6 @@ func main() {
 		Secret: "password",
 		Repo:   &repo,
 		Ns:     &ns,
-		Hs:     &hs,
 		Ms:     &ms,
 	}
 

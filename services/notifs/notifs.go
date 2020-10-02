@@ -1,7 +1,6 @@
 package notifs
 
 import (
-	"http"
 	"sync"
 
 	"github.com/solderneer/axiom-backend/graph/model"
@@ -18,8 +17,22 @@ func (ns *NotifService) Init() {
 }
 
 func (ns *NotifService) SendNotification(n model.Notification, uid string) {
-	ns.nmutex.Lock()
 	ns.nchans[uid] <- &n
+}
+
+func (ns *NotifService) CreateUserChannel(user string) *chan *model.Notification {
+	nchan := make(chan *model.Notification, 1)
+
+	ns.nmutex.Lock()
+	ns.nchans[user] = nchan
+	ns.nmutex.Unlock()
+
+	return &nchan
+}
+
+func (ns *NotifService) DeleteUserChannel(user string) {
+	ns.nmutex.Lock()
+	delete(ns.nchans, user)
 	ns.nmutex.Unlock()
 }
 

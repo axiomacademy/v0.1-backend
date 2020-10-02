@@ -105,20 +105,18 @@ func (Tutor) IsUser() {}
 type HeartbeatStatus string
 
 const (
-	HeartbeatStatusOnline  HeartbeatStatus = "ONLINE"
-	HeartbeatStatusActive  HeartbeatStatus = "ACTIVE"
-	HeartbeatStatusOffline HeartbeatStatus = "OFFLINE"
+	HeartbeatStatusAvailable   HeartbeatStatus = "AVAILABLE"
+	HeartbeatStatusUnavailable HeartbeatStatus = "UNAVAILABLE"
 )
 
 var AllHeartbeatStatus = []HeartbeatStatus{
-	HeartbeatStatusOnline,
-	HeartbeatStatusActive,
-	HeartbeatStatusOffline,
+	HeartbeatStatusAvailable,
+	HeartbeatStatusUnavailable,
 }
 
 func (e HeartbeatStatus) IsValid() bool {
 	switch e {
-	case HeartbeatStatusOnline, HeartbeatStatusActive, HeartbeatStatusOffline:
+	case HeartbeatStatusAvailable, HeartbeatStatusUnavailable:
 		return true
 	}
 	return false

@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
@@ -62,7 +63,7 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 	// DEFAULT RATING IS 3
 	// Create db.Subject type
 	subject := db.Subject{Name: input.Subject.Name.String(), Level: input.Subject.Level.String()}
-	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, subject)
+	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, subject, "AVAILABLE", time.Now())
 	if err != nil {
 		return "", err
 	}
@@ -134,8 +135,10 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 	}
 
 	t := u.(db.Tutor)
+	t.Status = input.String()
+	t.LastSeen = time.Now()
 
-	err = r.Hs.SetHeartbeat(t.Id, input)
+	err = r.Repo.UpdateTutor(t)
 	if err != nil {
 		return "", err
 	}
@@ -234,15 +237,6 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	return lessons, nil
 }
 
-func (r *queryResolver) Heartbeat(ctx context.Context, input string) (*model.Heartbeat, error) {
-	h, err := r.Hs.GetHeartbeat(input)
-	if err != nil {
-		return &h, err
-	}
-
-	return &h, nil
-}
-
 func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model.Lesson, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
@@ -263,20 +257,15 @@ func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model
 
 func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {
 	// Creating the channel
-	nchan := make(chan *model.Notification, 1)
-	r.Ns.Nmutex.Lock()
-	r.Ns.Nchans[user] = nchan
-	r.Ns.Nmutex.Unlock()
+	nchan := r.Ns.CreateUserChannel(user)
 
 	// Delete channel when done
 	go func() {
 		<-ctx.Done()
-		r.Ns.Nmutex.Lock()
-		delete(r.Ns.Nchans, user)
-		r.Ns.Nmutex.Unlock()
+		r.Ns.DeleteUserChannel(user)
 	}()
 
-	return nchan, nil
+	return *nchan, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

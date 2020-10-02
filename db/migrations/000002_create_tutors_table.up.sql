@@ -16,7 +16,5 @@ CREATE TABLE IF NOT EXISTS tutors (
   rating INT NOT NULL,
   education TEXT [],
   subject subject,
-  status VARCHAR(10) NOT NULL DEFAULT 'OFFLINE',
-  last_seen TIMESTAMP,
   PRIMARY KEY(id)
 );
