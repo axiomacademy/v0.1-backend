@@ -589,9 +589,8 @@ interface User {
 scalar Date
 
 enum HeartbeatStatus {
-  ONLINE
-  ACTIVE
-  OFFLINE
+  AVAILABLE
+  UNAVAILABLE
 }
 
 ############################## TYPES #####################################################
@@ -674,12 +673,15 @@ input LoginInfo {
 type Query {
   self: User!,
   lessons: [Lesson!]!
+<<<<<<< HEAD
 
   # Lesson id
   getLessonRoom(input: String!): String!
 
   # TODO: REMOVE AT SOME POINT IT IS ONLY FOR TESTING
   heartbeat(input: String!): Heartbeat!
+=======
+>>>>>>> 0977ec1b16e2d8fb47f2b71fadc7470aca3b8df6
 }
 
 ############################### MUTATIONS ####################################################
@@ -4457,20 +4459,6 @@ func (ec *executionContext) marshalNDate2string(ctx context.Context, sel ast.Sel
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) marshalNHeartbeat2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐHeartbeat(ctx context.Context, sel ast.SelectionSet, v model.Heartbeat) graphql.Marshaler {
-	return ec._Heartbeat(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNHeartbeat2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐHeartbeat(ctx context.Context, sel ast.SelectionSet, v *model.Heartbeat) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Heartbeat(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNHeartbeatStatus2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐHeartbeatStatus(ctx context.Context, v interface{}) (model.HeartbeatStatus, error) {

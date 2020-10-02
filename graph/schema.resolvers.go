@@ -134,7 +134,7 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 	}
 
 	t := u.(db.Tutor)
-	t.Status = string(input)
+	t.Status = input.String()
 	t.LastSeen = time.Now()
 
 	err = r.Repo.UpdateTutor(t)
@@ -210,15 +210,6 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 
 func (r *queryResolver) GetLessonRoom(ctx context.Context, input string) (string, error) {
 	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *queryResolver) Heartbeat(ctx context.Context, input string) (*model.Heartbeat, error) {
-	h, err := r.Hs.GetHeartbeat(input)
-	if err != nil {
-		return &h, err
-	}
-
-	return &h, nil
 }
 
 func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {

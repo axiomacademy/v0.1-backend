@@ -14,9 +14,8 @@ interface User {
 scalar Date
 
 enum HeartbeatStatus {
-  ONLINE
-  ACTIVE
-  OFFLINE
+  AVAILABLE
+  UNAVAILABLE
 }
 
 ############################## TYPES #####################################################

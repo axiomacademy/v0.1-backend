@@ -22,8 +22,8 @@ type Tutor struct {
 	Rating         int
 	Education      []string
 	Subjects       []string
-	Status				 string
-	LastSeen			 time.Time
+	Status         string
+	LastSeen       time.Time
 }
 
 func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string, status string, lastSeen time.Time) (Tutor, error) {
@@ -92,9 +92,11 @@ func (r *Repository) UpdateTutor(t Tutor) error {
 }
 
 func (r *Repository) GetTutorById(id string) (Tutor, error) {
-	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects FROM tutors WHERE id = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, subjects, status, last_seen FROM tutors WHERE id = $1`
 
 	var subjects pgtype.EnumArray
+	var lastSeen pgtype.Timestamptz
+
 	var t Tutor
 
 	if err := r.DbPool.QueryRow(context.Background(), sql, id).Scan(
@@ -109,12 +111,15 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 		&t.Bio,
 		&t.Rating,
 		&t.Education,
-		&subjects); err != nil {
+		&subjects,
+		&t.Status,
+		&lastSeen); err != nil {
 		return t, err
 	}
 
 	// Populating subjects separately because it is an enum array
 	subjects.AssignTo(&t.Subjects)
+	lastSeen.AssignTo(&t.LastSeen)
 	return t, nil
 }
 
@@ -123,6 +128,7 @@ func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 
 	var subjects pgtype.EnumArray
 	var lastSeen pgtype.Timestamptz
+
 	var t Tutor
 
 	if err := r.DbPool.QueryRow(context.Background(), sql, username).Scan(
@@ -162,12 +168,14 @@ func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var lesson Lesson
-		err := rows.Scan(&lesson.Id, &lesson.Subject, &lesson.Tutor, &lesson.Student, &lesson.Duration, &lesson.Date, &lesson.Chat)
+		var date pgtype.Timestamptz
+		err := rows.Scan(&lesson.Id, &lesson.Subject, &lesson.Tutor, &lesson.Student, &lesson.Duration, &date, &lesson.Chat)
 
 		if err != nil {
 			return nil, err
 		}
 
+		date.AssignTo(&lesson.Date)
 		lessons = append(lessons, lesson)
 	}
 
