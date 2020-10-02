@@ -63,12 +63,14 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateStudent   func(childComplexity int, input model.NewStudent) int
-		CreateTutor     func(childComplexity int, input model.NewTutor) int
-		LoginStudent    func(childComplexity int, input model.LoginInfo) int
-		LoginTutor      func(childComplexity int, input model.LoginInfo) int
-		RefreshToken    func(childComplexity int) int
-		UpdateHeartbeat func(childComplexity int, input model.HeartbeatStatus) int
+		CreateLessonRoom func(childComplexity int, input string) int
+		CreateStudent    func(childComplexity int, input model.NewStudent) int
+		CreateTutor      func(childComplexity int, input model.NewTutor) int
+		EndLessonRoom    func(childComplexity int, input string) int
+		LoginStudent     func(childComplexity int, input model.LoginInfo) int
+		LoginTutor       func(childComplexity int, input model.LoginInfo) int
+		RefreshToken     func(childComplexity int) int
+		UpdateHeartbeat  func(childComplexity int, input model.HeartbeatStatus) int
 	}
 
 	Notification struct {
@@ -77,9 +79,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Heartbeat func(childComplexity int, input string) int
-		Lessons   func(childComplexity int) int
-		Self      func(childComplexity int) int
+		GetLessonRoom func(childComplexity int, input string) int
+		Heartbeat     func(childComplexity int, input string) int
+		Lessons       func(childComplexity int) int
+		Self          func(childComplexity int) int
 	}
 
 	Student struct {
@@ -117,10 +120,13 @@ type MutationResolver interface {
 	LoginTutor(ctx context.Context, input model.LoginInfo) (string, error)
 	RefreshToken(ctx context.Context) (string, error)
 	UpdateHeartbeat(ctx context.Context, input model.HeartbeatStatus) (string, error)
+	CreateLessonRoom(ctx context.Context, input string) (string, error)
+	EndLessonRoom(ctx context.Context, input string) (string, error)
 }
 type QueryResolver interface {
 	Self(ctx context.Context) (model.User, error)
 	Lessons(ctx context.Context) ([]*model.Lesson, error)
+	GetLessonRoom(ctx context.Context, input string) (string, error)
 	Heartbeat(ctx context.Context, input string) (*model.Heartbeat, error)
 }
 type SubscriptionResolver interface {
@@ -212,6 +218,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Lesson.Tutor(childComplexity), true
 
+	case "Mutation.createLessonRoom":
+		if e.complexity.Mutation.CreateLessonRoom == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createLessonRoom_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateLessonRoom(childComplexity, args["input"].(string)), true
+
 	case "Mutation.createStudent":
 		if e.complexity.Mutation.CreateStudent == nil {
 			break
@@ -235,6 +253,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateTutor(childComplexity, args["input"].(model.NewTutor)), true
+
+	case "Mutation.endLessonRoom":
+		if e.complexity.Mutation.EndLessonRoom == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_endLessonRoom_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.EndLessonRoom(childComplexity, args["input"].(string)), true
 
 	case "Mutation.loginStudent":
 		if e.complexity.Mutation.LoginStudent == nil {
@@ -292,6 +322,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Notification.Title(childComplexity), true
+
+	case "Query.getLessonRoom":
+		if e.complexity.Query.GetLessonRoom == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getLessonRoom_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetLessonRoom(childComplexity, args["input"].(string)), true
 
 	case "Query.heartbeat":
 		if e.complexity.Query.Heartbeat == nil {
@@ -633,6 +675,9 @@ type Query {
   self: User!,
   lessons: [Lesson!]!
 
+  # Lesson id
+  getLessonRoom(input: String!): String!
+
   # TODO: REMOVE AT SOME POINT IT IS ONLY FOR TESTING
   heartbeat(input: String!): Heartbeat!
 }
@@ -648,6 +693,10 @@ type Mutation {
   refreshToken: String!
 
   updateHeartbeat(input: HeartbeatStatus!): String!
+
+  # Lesson id
+  createLessonRoom(input: String!): String!
+  endLessonRoom(input: String!): String!
 }
 
 ############################### MUTATIONS ####################################################
@@ -661,6 +710,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_createLessonRoom_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_createStudent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -684,6 +748,21 @@ func (ec *executionContext) field_Mutation_createTutor_args(ctx context.Context,
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
 		arg0, err = ec.unmarshalNNewTutor2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewTutor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_endLessonRoom_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -749,6 +828,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getLessonRoom_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -1399,6 +1493,88 @@ func (ec *executionContext) _Mutation_updateHeartbeat(ctx context.Context, field
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_createLessonRoom(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createLessonRoom_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateLessonRoom(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_endLessonRoom(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_endLessonRoom_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().EndLessonRoom(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Notification_title(ctx context.Context, field graphql.CollectedField, obj *model.Notification) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1533,6 +1709,47 @@ func (ec *executionContext) _Query_lessons(ctx context.Context, field graphql.Co
 	res := resTmp.([]*model.Lesson)
 	fc.Result = res
 	return ec.marshalNLesson2ᚕᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐLessonᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getLessonRoom(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getLessonRoom_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetLessonRoom(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_heartbeat(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3679,6 +3896,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "createLessonRoom":
+			out.Values[i] = ec._Mutation_createLessonRoom(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "endLessonRoom":
+			out.Values[i] = ec._Mutation_endLessonRoom(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3760,6 +3987,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_lessons(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "getLessonRoom":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getLessonRoom(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

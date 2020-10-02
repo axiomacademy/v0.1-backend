@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/solderneer/axiom-backend/db"
@@ -149,6 +150,14 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 	return token, nil
 }
 
+func (r *mutationResolver) CreateLessonRoom(ctx context.Context, input string) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) EndLessonRoom(ctx context.Context, input string) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
@@ -197,6 +206,10 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	}
 
 	return lessons, nil
+}
+
+func (r *queryResolver) GetLessonRoom(ctx context.Context, input string) (string, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) Heartbeat(ctx context.Context, input string) (*model.Heartbeat, error) {

@@ -100,6 +100,9 @@ type Query {
   self: User!,
   lessons: [Lesson!]!
 
+  # Lesson id
+  getLessonRoom(input: String!): String!
+
   # TODO: REMOVE AT SOME POINT IT IS ONLY FOR TESTING
   heartbeat(input: String!): Heartbeat!
 }
@@ -115,6 +118,10 @@ type Mutation {
   refreshToken: String!
 
   updateHeartbeat(input: HeartbeatStatus!): String!
+
+  # Lesson id
+  createLessonRoom(input: String!): String!
+  endLessonRoom(input: String!): String!
 }
 
 ############################### MUTATIONS ####################################################
