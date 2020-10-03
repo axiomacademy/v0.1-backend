@@ -26,7 +26,7 @@ enum SubjectName {
   BIOLOGY
 }
 
-enum SubjectLevel {
+enum SubjectStandard {
   ALEVELS
   OLEVELS
   IB
@@ -34,7 +34,7 @@ enum SubjectLevel {
 
 type Subject {
   name: SubjectName!
-  level: SubjectLevel!
+  standard: SubjectStandard!
 }
 
 ############################## TYPES #####################################################
@@ -59,7 +59,7 @@ type Tutor implements User {
   bio: String!
   rating: Int!
   education: [String!]!
-  subject: Subject!
+  subjects: [Subject!]!
 }
 
 type Lesson {
@@ -88,7 +88,7 @@ type Heartbeat {
 
 input NewSubject {
   name: SubjectName!
-  level: SubjectLevel!
+  standard: SubjectStandard!
 }
 
 input NewStudent {
@@ -110,7 +110,7 @@ input NewTutor {
   hourlyRate: Int!
   bio: String!
   education: [String!]!
-  subject: NewSubject!
+  subjects: [NewSubject!]!
 }
 
 input LoginInfo {

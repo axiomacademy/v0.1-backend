@@ -62,8 +62,12 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 
 	// DEFAULT RATING IS 3
 	// Create db.Subject type
-	subject := db.Subject{Name: input.Subject.Name.String(), Level: input.Subject.Level.String()}
-	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, subject, "AVAILABLE", time.Now())
+	subjects, err := r.Repo.GetSubjects(input.Subjects)
+	if err != nil {
+		return "", err
+	}
+
+	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, subjects, "AVAILABLE", time.Now())
 	if err != nil {
 		return "", err
 	}
@@ -159,7 +163,11 @@ func (r *mutationResolver) MatchOnDemand(ctx context.Context, input model.MatchR
 
 	if utype == "s" {
 		s := u.(db.Student)
-		subject := db.Subject{Name: input.Subject.Name.String(), Level: input.Subject.Level.String()}
+		subject, err := r.Repo.GetSubject(input.Subject.Name.String(), input.Subject.Standard.String())
+		if err != nil {
+			return "", err
+		}
+
 		mid, err := r.Ms.MatchOnDemand(s, subject)
 		return mid, err
 	} else if utype == "t" {
@@ -180,7 +188,7 @@ func (r *mutationResolver) AcceptMatch(ctx context.Context, input string) (*mode
 	} else if utype == "t" {
 		t := u.(db.Tutor)
 		l, err := r.Ms.AcceptOnDemandMatch(t, input)
-		ml := r.Repo.ToLessonModel(*l)
+		ml, err := r.Repo.ToLessonModel(*l)
 		return &ml, err
 	} else {
 		return nil, errors.New("Unauthorised, please log in")
@@ -230,7 +238,10 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	// Convert dbLessons to gql Lesson Type
 	var lessons []*model.Lesson
 	for _, l := range dbLessons {
-		rl := r.Repo.ToLessonModel(l)
+		rl, err := r.Repo.ToLessonModel(l)
+		if err != nil {
+			return nil, err
+		}
 		lessons = append(lessons, &rl)
 	}
 
@@ -246,7 +257,7 @@ func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model
 	if utype == "s" {
 		s := u.(db.Student)
 		l, err := r.Ms.GetOnDemandMatch(s, input)
-		ml := r.Repo.ToLessonModel(*l)
+		ml, err := r.Repo.ToLessonModel(*l)
 		return &ml, err
 	} else if utype == "t" {
 		return nil, errors.New("Only students can request for matches")

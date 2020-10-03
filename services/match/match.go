@@ -17,11 +17,11 @@ import (
 )
 
 type MatchStatus struct {
-	Status       string `json:"status"`
-	Sid          string `json:"student_id"`
-	SubjectName  string `json:"subject_name"`
-	SubjectLevel string `json:"subject_level"`
-	Lid          string `json:"lesson_id"`
+	Status          string `json:"status"`
+	Sid             string `json:"student_id"`
+	SubjectName     string `json:"subject_name"`
+	SubjectStandard string `json:"subject_standard"`
+	Lid             string `json:"lesson_id"`
 }
 
 type MatchService struct {
@@ -101,11 +101,11 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 	// Generate match id
 	mid := uuid.New()
 	mstatus := MatchStatus{
-		Status:       "MATCHING",
-		Sid:          s.Id,
-		SubjectName:  subject.Name,
-		SubjectLevel: subject.Level,
-		Lid:          "",
+		Status:          "MATCHING",
+		Sid:             s.Id,
+		SubjectName:     subject.Name,
+		SubjectStandard: subject.Standard,
+		Lid:             "",
 	}
 
 	// Storing the match on the match queue
@@ -184,7 +184,11 @@ func (ms *MatchService) AcceptOnDemandMatch(t db.Tutor, token string) (*db.Lesso
 	}
 
 	// Creating the lesson
-	subject := db.Subject{Name: status.SubjectName, Level: status.SubjectLevel}
+	subject, err := ms.Repo.GetSubject(status.SubjectName, status.SubjectStandard)
+	if err != nil {
+		return nil, err
+	}
+
 	l, err := ms.Repo.CreateLesson(subject, t.Id, status.Sid, 0, time.Now())
 	if err != nil {
 		return nil, err

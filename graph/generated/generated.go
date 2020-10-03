@@ -95,8 +95,8 @@ type ComplexityRoot struct {
 	}
 
 	Subject struct {
-		Level func(childComplexity int) int
-		Name  func(childComplexity int) int
+		Name     func(childComplexity int) int
+		Standard func(childComplexity int) int
 	}
 
 	Subscription struct {
@@ -113,7 +113,7 @@ type ComplexityRoot struct {
 		LastName   func(childComplexity int) int
 		ProfilePic func(childComplexity int) int
 		Rating     func(childComplexity int) int
-		Subject    func(childComplexity int) int
+		Subjects   func(childComplexity int) int
 		Username   func(childComplexity int) int
 	}
 }
@@ -402,19 +402,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Student.Username(childComplexity), true
 
-	case "Subject.level":
-		if e.complexity.Subject.Level == nil {
-			break
-		}
-
-		return e.complexity.Subject.Level(childComplexity), true
-
 	case "Subject.name":
 		if e.complexity.Subject.Name == nil {
 			break
 		}
 
 		return e.complexity.Subject.Name(childComplexity), true
+
+	case "Subject.standard":
+		if e.complexity.Subject.Standard == nil {
+			break
+		}
+
+		return e.complexity.Subject.Standard(childComplexity), true
 
 	case "Subscription.subscribeNotifications":
 		if e.complexity.Subscription.SubscribeNotifications == nil {
@@ -491,12 +491,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tutor.Rating(childComplexity), true
 
-	case "Tutor.subject":
-		if e.complexity.Tutor.Subject == nil {
+	case "Tutor.subjects":
+		if e.complexity.Tutor.Subjects == nil {
 			break
 		}
 
-		return e.complexity.Tutor.Subject(childComplexity), true
+		return e.complexity.Tutor.Subjects(childComplexity), true
 
 	case "Tutor.username":
 		if e.complexity.Tutor.Username == nil {
@@ -614,7 +614,7 @@ enum SubjectName {
   BIOLOGY
 }
 
-enum SubjectLevel {
+enum SubjectStandard {
   ALEVELS
   OLEVELS
   IB
@@ -622,7 +622,7 @@ enum SubjectLevel {
 
 type Subject {
   name: SubjectName!
-  level: SubjectLevel!
+  standard: SubjectStandard!
 }
 
 ############################## TYPES #####################################################
@@ -647,7 +647,7 @@ type Tutor implements User {
   bio: String!
   rating: Int!
   education: [String!]!
-  subject: Subject!
+  subjects: [Subject!]!
 }
 
 type Lesson {
@@ -676,7 +676,7 @@ type Heartbeat {
 
 input NewSubject {
   name: SubjectName!
-  level: SubjectLevel!
+  standard: SubjectStandard!
 }
 
 input NewStudent {
@@ -698,7 +698,7 @@ input NewTutor {
   hourlyRate: Int!
   bio: String!
   education: [String!]!
-  subject: NewSubject!
+  subjects: [NewSubject!]!
 }
 
 input LoginInfo {
@@ -2114,7 +2114,7 @@ func (ec *executionContext) _Subject_name(ctx context.Context, field graphql.Col
 	return ec.marshalNSubjectName2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectName(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Subject_level(ctx context.Context, field graphql.CollectedField, obj *model.Subject) (ret graphql.Marshaler) {
+func (ec *executionContext) _Subject_standard(ctx context.Context, field graphql.CollectedField, obj *model.Subject) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2131,7 +2131,7 @@ func (ec *executionContext) _Subject_level(ctx context.Context, field graphql.Co
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Level, nil
+		return obj.Standard, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2143,9 +2143,9 @@ func (ec *executionContext) _Subject_level(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(model.SubjectLevel)
+	res := resTmp.(model.SubjectStandard)
 	fc.Result = res
-	return ec.marshalNSubjectLevel2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectLevel(ctx, field.Selections, res)
+	return ec.marshalNSubjectStandard2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectStandard(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Subscription_subscribeNotifications(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
@@ -2539,7 +2539,7 @@ func (ec *executionContext) _Tutor_education(ctx context.Context, field graphql.
 	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Tutor_subject(ctx context.Context, field graphql.CollectedField, obj *model.Tutor) (ret graphql.Marshaler) {
+func (ec *executionContext) _Tutor_subjects(ctx context.Context, field graphql.CollectedField, obj *model.Tutor) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2556,7 +2556,7 @@ func (ec *executionContext) _Tutor_subject(ctx context.Context, field graphql.Co
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Subject, nil
+		return obj.Subjects, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2568,9 +2568,9 @@ func (ec *executionContext) _Tutor_subject(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Subject)
+	res := resTmp.([]*model.Subject)
 	fc.Result = res
-	return ec.marshalNSubject2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubject(ctx, field.Selections, res)
+	return ec.marshalNSubject2ᚕᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -3750,11 +3750,11 @@ func (ec *executionContext) unmarshalInputNewSubject(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
-		case "level":
+		case "standard":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("level"))
-			it.Level, err = ec.unmarshalNSubjectLevel2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectLevel(ctx, v)
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("standard"))
+			it.Standard, err = ec.unmarshalNSubjectStandard2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectStandard(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3842,11 +3842,11 @@ func (ec *executionContext) unmarshalInputNewTutor(ctx context.Context, obj inte
 			if err != nil {
 				return it, err
 			}
-		case "subject":
+		case "subjects":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("subject"))
-			it.Subject, err = ec.unmarshalNNewSubject2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewSubject(ctx, v)
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("subjects"))
+			it.Subjects, err = ec.unmarshalNNewSubject2ᚕᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewSubjectᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4221,8 +4221,8 @@ func (ec *executionContext) _Subject(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "level":
-			out.Values[i] = ec._Subject_level(ctx, field, obj)
+		case "standard":
+			out.Values[i] = ec._Subject_standard(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4318,8 +4318,8 @@ func (ec *executionContext) _Tutor(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "subject":
-			out.Values[i] = ec._Tutor_subject(ctx, field, obj)
+		case "subjects":
+			out.Values[i] = ec._Tutor_subjects(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4715,6 +4715,27 @@ func (ec *executionContext) unmarshalNNewStudent2githubᚗcomᚋsolderneerᚋaxi
 	return res, graphql.WrapErrorWithInputPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNNewSubject2ᚕᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewSubjectᚄ(ctx context.Context, v interface{}) ([]*model.NewSubject, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.NewSubject, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithIndex(i))
+		res[i], err = ec.unmarshalNNewSubject2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewSubject(ctx, vSlice[i])
+		if err != nil {
+			return nil, graphql.WrapErrorWithInputPath(ctx, err)
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) unmarshalNNewSubject2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewSubject(ctx context.Context, v interface{}) (*model.NewSubject, error) {
 	res, err := ec.unmarshalInputNewSubject(ctx, v)
 	return &res, graphql.WrapErrorWithInputPath(ctx, err)
@@ -4794,6 +4815,43 @@ func (ec *executionContext) marshalNStudent2ᚖgithubᚗcomᚋsolderneerᚋaxiom
 	return ec._Student(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNSubject2ᚕᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Subject) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSubject2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubject(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNSubject2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubject(ctx context.Context, sel ast.SelectionSet, v *model.Subject) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -4804,16 +4862,6 @@ func (ec *executionContext) marshalNSubject2ᚖgithubᚗcomᚋsolderneerᚋaxiom
 	return ec._Subject(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNSubjectLevel2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectLevel(ctx context.Context, v interface{}) (model.SubjectLevel, error) {
-	var res model.SubjectLevel
-	err := res.UnmarshalGQL(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNSubjectLevel2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectLevel(ctx context.Context, sel ast.SelectionSet, v model.SubjectLevel) graphql.Marshaler {
-	return v
-}
-
 func (ec *executionContext) unmarshalNSubjectName2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectName(ctx context.Context, v interface{}) (model.SubjectName, error) {
 	var res model.SubjectName
 	err := res.UnmarshalGQL(v)
@@ -4821,6 +4869,16 @@ func (ec *executionContext) unmarshalNSubjectName2githubᚗcomᚋsolderneerᚋax
 }
 
 func (ec *executionContext) marshalNSubjectName2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectName(ctx context.Context, sel ast.SelectionSet, v model.SubjectName) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNSubjectStandard2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectStandard(ctx context.Context, v interface{}) (model.SubjectStandard, error) {
+	var res model.SubjectStandard
+	err := res.UnmarshalGQL(v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSubjectStandard2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectStandard(ctx context.Context, sel ast.SelectionSet, v model.SubjectStandard) graphql.Marshaler {
 	return v
 }
 

@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS lessons (
-  id VARCHAR(36) NOT NULL UNIQUE,
-  subject TEXT NOT NULL,
+  id VARCHAR(38) NOT NULL UNIQUE,
+  subject VARCHAR(38) NOT NULL,
   summary TEXT,
   tutor VARCHAR(38) NOT NULL,
   student VARCHAR(38) NOT NULL,
@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS lessons (
       REFERENCES tutors(id),
   CONSTRAINT fk_student
     FOREIGN KEY(student)
-      REFERENCES students(id)
+      REFERENCES students(id),
+  CONSTRAINT fk_subject
+    FOREIGN KEY(subject)
+      REFERENCES subjects(id)
 );
   
