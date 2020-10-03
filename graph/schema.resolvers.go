@@ -212,6 +212,10 @@ func (r *queryResolver) GetLessonRoom(ctx context.Context, input string) (string
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *queryResolver) Heartbeat(ctx context.Context, input string) (*model.Heartbeat, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {
 	// Creating the channel
 	nchan := make(chan *model.Notification, 1)
