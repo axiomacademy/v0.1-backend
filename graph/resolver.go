@@ -6,10 +6,12 @@ package graph
 import (
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/services/notifs"
+	"github.com/solderneer/axiom-backend/services/video"
 )
 
 type Resolver struct {
 	Secret string
 	Repo   *db.Repository
 	Ns     *notifs.NotifService
+	Video	 *video.VideoClient
 }

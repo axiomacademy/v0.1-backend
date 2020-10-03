@@ -157,7 +157,7 @@ func (c *VideoClient) makeRequest(method string, path string, values url.Values)
 	}
 }
 
-func (c *VideoClient) CreateRoom(uid string) (*TwilioRoomResponse, error) {
+func (c *VideoClient) CreateRoom() (*TwilioRoomResponse, error) {
 	res, err := c.makeRequest("POST", "/Rooms", nil)
 	if err != nil {
 		return nil, err

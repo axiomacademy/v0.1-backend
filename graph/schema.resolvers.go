@@ -151,11 +151,45 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 }
 
 func (r *mutationResolver) CreateLessonRoom(ctx context.Context, input string) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if utype != "t" {
+		return "", errors.New("Invalid user type for creating a Room")
+	}
+
+	t := u.(db.Tutor)
+
+	// Create Room
+	room, err := r.Video.CreateRoom()
+	if err != nil {
+		return "", err
+	}
+
+	// Generate Access Token
+	token, err := r.Video.GenerateAccessToken(t.Id, room.SID)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
 
 func (r *mutationResolver) EndLessonRoom(ctx context.Context, input string) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	_, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if !(utype == "t" || utype == "s") {
+		return "", errors.New("Invalid user type for creating a Room")
+	}
+
+	// TODO: Auth-ing who can delete a room is probably a splendid idea
+	err = r.Video.CompleteRoom(input)
+	return "", err
 }
 
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
@@ -209,7 +243,29 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 }
 
 func (r *queryResolver) GetLessonRoom(ctx context.Context, input string) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var uid string
+	if utype == "t" {
+		t := u.(db.Tutor)
+		uid = t.Id
+	} else if utype == "s" {
+		s := u.(db.Student)
+		uid = s.Id
+	} else {
+		return "", errors.New("Unauthorised, please log in")
+	}
+
+	// TODO: Auth-ing who can delete a room is probably a splendid idea
+	token, err := r.Video.GenerateAccessToken(uid, input)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
 
 func (r *queryResolver) Heartbeat(ctx context.Context, input string) (*model.Heartbeat, error) {
