@@ -17,5 +17,4 @@ CREATE TABLE IF NOT EXISTS lessons (
   CONSTRAINT fk_subject
     FOREIGN KEY(subject)
       REFERENCES subjects(id)
-);
-  
+); 

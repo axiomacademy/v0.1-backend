@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS subjects (
 
 CREATE TABLE IF NOT EXISTS teaching (
   tutor VARCHAR(38) NOT NULL,
-  subject VARCHAR (38) NOT NULL,
+  subject VARCHAR(38) NOT NULL,
   PRIMARY KEY(tutor, subject),
   CONSTRAINT fk_tutor
     FOREIGN KEY(tutor)
