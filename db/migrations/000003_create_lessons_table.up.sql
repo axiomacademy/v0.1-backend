@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS lessons (
   tutor VARCHAR(38) NOT NULL,
   student VARCHAR(38) NOT NULL,
   duration INT NOT NULL,
-  date TIMESTAMP NOT NULL,
+  start_time TIMESTAMPTZ NOT NULL,
   chat TEXT,
   PRIMARY KEY(id),
   CONSTRAINT fk_tutor

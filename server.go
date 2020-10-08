@@ -35,7 +35,9 @@ func main() {
 
 	// Initialising all services
 	ns := notifs.NotifService{}
-	ns.Init()
+	if err := ns.Init(); err != nil {
+		log.Fatalf("Unable to initialise notification service")
+	}
 
 	ms := match.MatchService{}
 	matchQueue := os.Getenv("MATCH_DIR")

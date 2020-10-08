@@ -112,7 +112,32 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 	err := ms.updateMatch(mid, mstatus)
 
 	go func() {
-		tids := []string{"1", "2", "3", "4", "5"}
+		tids, err := ms.Repo.GetOnlineAffinityMatches(s.Id, subject)
+		if err != nil {
+			mstatus := MatchStatus{
+				Status: "FAILED",
+				Sid:    "",
+				Lid:    "",
+			}
+
+			ms.updateMatch(mid, mstatus)
+			return
+		}
+
+		if len(tids) < 15 {
+			rtids, err := ms.Repo.GetOnlineRandomMatches(subject, 15-len(tids))
+			if err != nil {
+				mstatus := MatchStatus{
+					Status: "FAILED",
+					Sid:    "",
+					Lid:    "",
+				}
+
+				ms.updateMatch(mid, mstatus)
+				return
+			}
+			tids = append(tids, rtids...)
+		}
 
 		mstudent := ms.Repo.ToStudentModel(s)
 		token, err := ms.generateMatchToken(mid)
