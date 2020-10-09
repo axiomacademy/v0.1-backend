@@ -12,7 +12,6 @@ import (
 
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/model"
-	"github.com/solderneer/axiom-backend/services/heartbeat"
 	"github.com/solderneer/axiom-backend/services/notifs"
 )
 
@@ -28,7 +27,6 @@ type MatchService struct {
 	db *badger.DB
 
 	Secret string
-	Hs     *heartbeat.HeartbeatService
 	Ns     *notifs.NotifService
 	Repo   *db.Repository
 }
