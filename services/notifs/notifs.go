@@ -21,7 +21,7 @@ type Notification struct {
 type NotifService struct {
 	fb     *firebase.App
 	fbm    *messaging.Client
-	nchans map[string]chan *model.Notification
+	nchans map[string]chan *model.MatchNotification
 	nmutex sync.Mutex
 }
 
@@ -41,18 +41,18 @@ func (ns *NotifService) Init() error {
 
 	ns.fb = fb
 	ns.fbm = client
-	ns.nchans = map[string]chan *model.Notification{}
+	ns.nchans = map[string]chan *model.MatchNotification{}
 	ns.nmutex = sync.Mutex{}
 
 	return nil
 }
 
-func (ns *NotifService) SendNotification(n model.Notification, uid string) {
+func (ns *NotifService) SendMatchNotification(n model.MatchNotification, uid string) {
 	ns.nchans[uid] <- &n
 }
 
-func (ns *NotifService) CreateUserChannel(user string) *chan *model.Notification {
-	nchan := make(chan *model.Notification, 1)
+func (ns *NotifService) CreateUserMatchChannel(user string) *chan *model.MatchNotification {
+	nchan := make(chan *model.MatchNotification, 1)
 
 	ns.nmutex.Lock()
 	ns.nchans[user] = nchan
@@ -61,7 +61,7 @@ func (ns *NotifService) CreateUserChannel(user string) *chan *model.Notification
 	return &nchan
 }
 
-func (ns *NotifService) DeleteUserChannel(user string) {
+func (ns *NotifService) DeleteUserMatchChannel(user string) {
 	ns.nmutex.Lock()
 	delete(ns.nchans, user)
 	ns.nmutex.Unlock()

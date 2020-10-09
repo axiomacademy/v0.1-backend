@@ -11,7 +11,7 @@ interface User {
   profilePic: String!
 }
 
-scalar Date
+scalar Time
 
 enum HeartbeatStatus {
   AVAILABLE
@@ -69,14 +69,22 @@ type Lesson {
   tutor: Tutor!
   student: Student!
   duration: Int!
-  date: Date!
+  date: Time!
   chat: String!
 }
 
-type Notification {
+type MatchNotification {
   student: Student!
   subject: Subject!
   token: String!
+}
+
+type Notification {
+  id: ID!
+  title: String!
+  subtitle: String!
+  image: String!
+  created: Time!
 }
 
 type Heartbeat {
@@ -118,8 +126,18 @@ input LoginInfo {
   password: String!
 }
 
+input UpdateNotification {
+  id: String!
+  read: Boolean!
+}
+
 input MatchRequest {
   subject: NewSubject!
+}
+
+input PaginatedRequest {
+  startTime: Time!
+  endTime: Time!
 }
 
 ############################### QUERIES ####################################################
@@ -127,6 +145,7 @@ input MatchRequest {
 type Query {
   self: User!,
   lessons: [Lesson!]!
+  notifications(input: PaginatedRequest!): [Notification!]!
   
   # Match Service
   checkForMatch(input: String!): Lesson
@@ -148,9 +167,13 @@ type Mutation {
   # Match Service
   matchOnDemand(input: MatchRequest!): String!
   acceptMatch(input: String!): Lesson!
+
+  # Notification Service
+  updateNotification(input: UpdateNotification!): Notification!
+  registerPushNotification(input: String!): String!
 }
 
 ############################### SUBSCRIPTIONS ####################################################
 type Subscription {
-  subscribeNotifications(user: String!): Notification!
+  subscribeMatchNotifications(user: String!): MatchNotification!
 }

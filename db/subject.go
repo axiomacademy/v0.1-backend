@@ -14,6 +14,11 @@ type Subject struct {
 	Standard string
 }
 
+func (r *Repository) ToSubjectModel(sb Subject) model.Subject {
+	subject := model.Subject{Name: model.SubjectName(sb.Name), Standard: model.SubjectStandard(sb.Standard)}
+	return subject
+}
+
 // Creates the subject if it doesn't exist, else retrieves the approprivate subject
 func (r *Repository) GetSubject(name string, standard string) (Subject, error) {
 	var s Subject
@@ -76,9 +81,4 @@ func (r *Repository) GetSubjectById(sid string) (Subject, error) {
 	}
 
 	return subject, nil
-}
-
-func (sb *Subject) ToSubjectModel() model.Subject {
-	subject := model.Subject{Name: model.SubjectName(sb.Name), Standard: model.SubjectStandard(sb.Standard)}
-	return subject
 }

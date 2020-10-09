@@ -154,15 +154,16 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 			return
 		}
 
+		msubject := ms.Repo.ToSubjectModel(subject)
+
 		for _, tid := range tids {
-			msubject := subject.ToSubjectModel()
-			n := model.Notification{
+			n := model.MatchNotification{
 				Student: &mstudent,
 				Subject: &msubject,
 				Token:   token,
 			}
 
-			ms.Ns.SendNotification(n, tid)
+			ms.Ns.SendMatchNotification(n, tid)
 			time.Sleep(time.Duration(30) * time.Second)
 
 			// Go and check the match queue for a match

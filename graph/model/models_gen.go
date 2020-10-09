@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
 type User interface {
@@ -18,19 +19,25 @@ type Heartbeat struct {
 }
 
 type Lesson struct {
-	ID       string   `json:"id"`
-	Subject  *Subject `json:"subject"`
-	Summary  string   `json:"summary"`
-	Tutor    *Tutor   `json:"tutor"`
-	Student  *Student `json:"student"`
-	Duration int      `json:"duration"`
-	Date     string   `json:"date"`
-	Chat     string   `json:"chat"`
+	ID       string    `json:"id"`
+	Subject  *Subject  `json:"subject"`
+	Summary  string    `json:"summary"`
+	Tutor    *Tutor    `json:"tutor"`
+	Student  *Student  `json:"student"`
+	Duration int       `json:"duration"`
+	Date     time.Time `json:"date"`
+	Chat     string    `json:"chat"`
 }
 
 type LoginInfo struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type MatchNotification struct {
+	Student *Student `json:"student"`
+	Subject *Subject `json:"subject"`
+	Token   string   `json:"token"`
 }
 
 type MatchRequest struct {
@@ -65,9 +72,16 @@ type NewTutor struct {
 }
 
 type Notification struct {
-	Student *Student `json:"student"`
-	Subject *Subject `json:"subject"`
-	Token   string   `json:"token"`
+	ID       string    `json:"id"`
+	Title    string    `json:"title"`
+	Subtitle string    `json:"subtitle"`
+	Image    string    `json:"image"`
+	Created  time.Time `json:"created"`
+}
+
+type PaginatedRequest struct {
+	StartTime time.Time `json:"startTime"`
+	EndTime   time.Time `json:"endTime"`
 }
 
 type Student struct {
@@ -101,6 +115,11 @@ type Tutor struct {
 }
 
 func (Tutor) IsUser() {}
+
+type UpdateNotification struct {
+	ID   string `json:"id"`
+	Read bool   `json:"read"`
+}
 
 type HeartbeatStatus string
 

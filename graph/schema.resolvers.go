@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/solderneer/axiom-backend/db"
@@ -67,7 +68,7 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 		return "", err
 	}
 
-	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, subjects, "AVAILABLE", time.Now())
+	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, subjects)
 	if err != nil {
 		return "", err
 	}
@@ -195,6 +196,27 @@ func (r *mutationResolver) AcceptMatch(ctx context.Context, input string) (*mode
 	}
 }
 
+func (r *mutationResolver) UpdateNotification(ctx context.Context, input model.UpdateNotification) (*model.Notification, error) {
+	n, err := r.Repo.GetNotificationById(input.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	n.Read = input.Read
+
+	err = r.Repo.UpdateNotification(n)
+	if err != nil {
+		return nil, err
+	}
+
+	mn := r.Repo.ToNotificationModel(n)
+	return &mn, nil
+}
+
+func (r *mutationResolver) RegisterPushNotification(ctx context.Context, input string) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
@@ -248,6 +270,42 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	return lessons, nil
 }
 
+func (r *queryResolver) Notifications(ctx context.Context, input model.PaginatedRequest) ([]*model.Notification, error) {
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var dbNotifications []db.Notification
+	if utype == "s" {
+		s := u.(db.Student)
+		dbNotifications, err = r.Repo.GetUserNotifications(s.Id, input.StartTime, input.EndTime)
+		if err != nil {
+			return nil, err
+		}
+	} else if utype == "t" {
+		t := u.(db.Tutor)
+		dbNotifications, err = r.Repo.GetUserNotifications(t.Id, input.StartTime, input.EndTime)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("Unauthorised, please log in")
+	}
+
+	// Convert dbLessons to gql Lesson Type
+	var notifications []*model.Notification
+	for _, n := range dbNotifications {
+		rn := r.Repo.ToNotificationModel(n)
+		if err != nil {
+			return nil, err
+		}
+		notifications = append(notifications, &rn)
+	}
+
+	return notifications, nil
+}
+
 func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model.Lesson, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
@@ -266,14 +324,13 @@ func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model
 	}
 }
 
-func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {
-	// Creating the channel
-	nchan := r.Ns.CreateUserChannel(user)
+func (r *subscriptionResolver) SubscribeMatchNotifications(ctx context.Context, user string) (<-chan *model.MatchNotification, error) {
+	nchan := r.Ns.CreateUserMatchChannel(user)
 
 	// Delete channel when done
 	go func() {
 		<-ctx.Done()
-		r.Ns.DeleteUserChannel(user)
+		r.Ns.DeleteUserMatchChannel(user)
 	}()
 
 	return *nchan, nil

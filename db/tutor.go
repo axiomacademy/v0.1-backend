@@ -26,7 +26,7 @@ type Tutor struct {
 	LastSeen       time.Time
 }
 
-func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []Subject, status string, lastSeen time.Time) (Tutor, error) {
+func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []Subject) (Tutor, error) {
 
 	var t Tutor
 
@@ -43,8 +43,8 @@ func (r *Repository) CreateTutor(username string, firstName string, lastName str
 	t.Bio = bio
 	t.Education = education
 	t.Subjects = subjects
-	t.Status = status
-	t.LastSeen = lastSeen
+	t.Status = "UNAVAILABLE"
+	t.LastSeen = time.Now()
 
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
@@ -283,7 +283,7 @@ func (r *Repository) RemoveSubjectsFromTutor(tid string) error {
 func (r *Repository) ToTutorModel(t Tutor) model.Tutor {
 	var subjects []*model.Subject
 	for _, dbSubject := range t.Subjects {
-		subject := dbSubject.ToSubjectModel()
+		subject := r.ToSubjectModel(dbSubject)
 		subjects = append(subjects, &subject)
 	}
 

@@ -34,9 +34,9 @@ func (r *Repository) ToLessonModel(l Lesson) (model.Lesson, error) {
 
 	rs := r.ToStudentModel(s)
 	rt := r.ToTutorModel(t)
-	rsub := l.Subject.ToSubjectModel()
+	rsub := r.ToSubjectModel(l.Subject)
 
-	return model.Lesson{ID: l.Id, Subject: &rsub, Summary: l.Summary, Tutor: &rt, Student: &rs, Duration: l.Duration, Date: l.Date.String(), Chat: l.Chat}, nil
+	return model.Lesson{ID: l.Id, Subject: &rsub, Summary: l.Summary, Tutor: &rt, Student: &rs, Duration: l.Duration, Date: l.Date, Chat: l.Chat}, nil
 }
 
 func (r *Repository) CreateLesson(subject Subject, tutor string, student string, duration int, date time.Time) (Lesson, error) {

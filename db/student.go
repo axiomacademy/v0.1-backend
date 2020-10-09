@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 
+	"github.com/jackc/pgtype"
 	"github.com/pborman/uuid"
 	"github.com/solderneer/axiom-backend/graph/model"
 )
@@ -64,7 +65,7 @@ func (r *Repository) UpdateStudent(s Student) error {
 
 	defer tx.Rollback(context.Background())
 
-	sql := `UPDATE students SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6) WHERE id = $1`
+	sql := `UPDATE students SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6 WHERE id = $1`
 	_, err = tx.Exec(context.Background(), sql, s.Id, s.FirstName, s.LastName, s.Email, s.HashedPassword, s.ProfilePic)
 
 	if err != nil {
@@ -118,9 +119,17 @@ func (r *Repository) GetStudentLessons(sid string) ([]Lesson, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var lesson Lesson
-		err := rows.Scan(&lesson.Id, &lesson.Subject, &lesson.Tutor, &lesson.Student, &lesson.Duration, &lesson.Date, &lesson.Chat)
+		var date pgtype.Timestamptz
+		var sid string
+
+		err := rows.Scan(&lesson.Id, &sid, &lesson.Tutor, &lesson.Student, &lesson.Duration, &date, &lesson.Chat)
 
 		if err != nil {
+			return nil, err
+		}
+
+		date.AssignTo(&lesson.Date)
+		if lesson.Subject, err = r.GetSubjectById(sid); err != nil {
 			return nil, err
 		}
 

@@ -2,11 +2,11 @@ CREATE TABLE IF NOT EXISTS notifications (
   id VARCHAR(36),
   tutor VARCHAR(38),
   student VARCHAR(38),
-  image TEXT,
   title TEXT NOT NULL,
   subtitle TEXT NOT NULL,
+  image TEXT,
   read BOOL NOT NULL DEFAULT FALSE,
-  created TIMESTAMPTZ NOT NULL DEFAULT,
+  created TIMESTAMPTZ NOT NULL,
   PRIMARY KEY(id),
   CONSTRAINT fk_tutor
     FOREIGN KEY(tutor)

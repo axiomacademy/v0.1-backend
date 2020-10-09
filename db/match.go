@@ -3,8 +3,6 @@ package db
 import (
 	"context"
 	"time"
-
-	"github.com/solderneer/axiom-backend/graph/model"
 )
 
 type Affinity struct {
@@ -110,7 +108,7 @@ func (r *Repository) GetOnlineRandomMatches(subject Subject, count int) ([]strin
 	FROM teaching
 	INNER JOIN tutors ON tutors.id = teaching.tutor
 	WHERE
-		tutors.last_seen > $1 AND
+		tutors.last_seen > timestamptz '$1' AND
 		tutors.status = AVAILABLE
 	TABLESAMPLE ($2 ROWS)
 	LIMIT $3
@@ -118,7 +116,12 @@ func (r *Repository) GetOnlineRandomMatches(subject Subject, count int) ([]strin
 
 	var tids []string
 
-	rows, err := r.dbPool.Query(context.Background(), sql, (time.Now().Add(time.Minute * -1)), 100, count)
+	exp, err := time.Now().Add(time.Minute * 1).MarshalText()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.dbPool.Query(context.Background(), sql, exp, 100, count)
 	if err != nil {
 		return nil, err
 	}
@@ -152,14 +155,19 @@ func (r *Repository) GetOnlineAffinityMatches(sid string, subject Subject) ([]st
 	WHERE 
 		affinity.student = $1 AND
 		affinity.subject = $2 AND
-		tutors.last_seen > $3 AND
+		tutors.last_seen > timestamptz '$3' AND
 		tutors.status = AVAILABLE
 	ORDER_BY affinity.score DESC
 	LIMIT $4 OFFSET $5`
 
 	var tids []string
 
-	rows, err := r.dbPool.Query(context.Background(), sql, sid, subject.Id, (time.Now().Add(time.Minute * -1)), 10, 0)
+	exp, err := time.Now().Add(time.Minute * 1).MarshalText()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.dbPool.Query(context.Background(), sql, sid, subject.Id, exp, 10, 0)
 	if err != nil {
 		return nil, err
 	}
