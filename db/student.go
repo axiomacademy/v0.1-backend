@@ -16,6 +16,7 @@ type Student struct {
 	Email          string
 	HashedPassword string
 	ProfilePic     string
+	PushToken      string
 }
 
 func (r *Repository) ToStudentModel(s Student) model.Student {
@@ -65,8 +66,8 @@ func (r *Repository) UpdateStudent(s Student) error {
 
 	defer tx.Rollback(context.Background())
 
-	sql := `UPDATE students SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6 WHERE id = $1`
-	_, err = tx.Exec(context.Background(), sql, s.Id, s.FirstName, s.LastName, s.Email, s.HashedPassword, s.ProfilePic)
+	sql := `UPDATE students SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, push_token = $7 WHERE id = $1`
+	_, err = tx.Exec(context.Background(), sql, s.Id, s.FirstName, s.LastName, s.Email, s.HashedPassword, s.ProfilePic, s.PushToken)
 
 	if err != nil {
 		return err
@@ -84,9 +85,9 @@ func (r *Repository) GetStudentById(id string) (Student, error) {
 
 	var s Student
 
-	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic FROM students WHERE id = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, push_token FROM students WHERE id = $1`
 
-	if err := r.dbPool.QueryRow(context.Background(), sql, id).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, id).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic, &s.PushToken); err != nil {
 		return s, err
 	}
 
@@ -97,9 +98,9 @@ func (r *Repository) GetStudentByUsername(username string) (Student, error) {
 
 	var s Student
 
-	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic FROM students WHERE username = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, push_token FROM students WHERE username = $1`
 
-	if err := r.dbPool.QueryRow(context.Background(), sql, username).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, username).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic, &s.PushToken); err != nil {
 		return s, err
 	}
 

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS tutors (
   education TEXT [],
   status VARCHAR(12),
 	last_seen TIMESTAMPTZ,
+  push_token TEXT,
   PRIMARY KEY(id)
 );
 

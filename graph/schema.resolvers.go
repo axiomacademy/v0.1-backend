@@ -214,7 +214,24 @@ func (r *mutationResolver) UpdateNotification(ctx context.Context, input model.U
 }
 
 func (r *mutationResolver) RegisterPushNotification(ctx context.Context, input string) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if utype == "s" {
+		s := u.(db.Student)
+		s.PushToken = input
+		err := r.Repo.UpdateStudent(s)
+		return input, err
+	} else if utype == "t" {
+		t := u.(db.Tutor)
+		t.PushToken = input
+		err := r.Repo.UpdateTutor(t)
+		return input, err
+	} else {
+		return "", errors.New("Unauthorised, please log in")
+	}
 }
 
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {

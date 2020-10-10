@@ -24,6 +24,17 @@ type Tutor struct {
 	Subjects       []Subject
 	Status         string
 	LastSeen       time.Time
+	PushToken      string
+}
+
+func (r *Repository) ToTutorModel(t Tutor) model.Tutor {
+	var subjects []*model.Subject
+	for _, dbSubject := range t.Subjects {
+		subject := r.ToSubjectModel(dbSubject)
+		subjects = append(subjects, &subject)
+	}
+
+	return model.Tutor{ID: t.Id, Username: t.Username, FirstName: t.FirstName, LastName: t.LastName, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: subjects}
 }
 
 func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []Subject) (Tutor, error) {
@@ -79,8 +90,8 @@ func (r *Repository) UpdateTutor(t Tutor) error {
 
 	defer tx.Rollback(context.Background())
 
-	sql := `UPDATE tutors SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, hourly_rate = $7, bio = $8, rating = $9, education = $10, status = $11, last_seen = $12 WHERE id = $1`
-	_, err = tx.Exec(context.Background(), sql, t.Id, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Bio, t.Rating, t.Education, t.Status, t.LastSeen)
+	sql := `UPDATE tutors SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, hourly_rate = $7, bio = $8, rating = $9, education = $10, status = $11, last_seen = $12, push_token = $13 WHERE id = $1`
+	_, err = tx.Exec(context.Background(), sql, t.Id, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Bio, t.Rating, t.Education, t.Status, t.LastSeen, t.PushToken)
 
 	if err != nil {
 		return err
@@ -102,7 +113,7 @@ func (r *Repository) UpdateTutor(t Tutor) error {
 }
 
 func (r *Repository) GetTutorById(id string) (Tutor, error) {
-	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, status, last_seen FROM tutors WHERE id = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, status, last_seen, push_token FROM tutors WHERE id = $1`
 
 	var lastSeen pgtype.Timestamptz
 	var t Tutor
@@ -120,7 +131,8 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 		&t.Rating,
 		&t.Education,
 		&t.Status,
-		&lastSeen); err != nil {
+		&lastSeen,
+		&t.PushToken); err != nil {
 		return t, err
 	}
 
@@ -137,7 +149,7 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 }
 
 func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
-	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, status, last_seen FROM tutors WHERE username = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, status, last_seen, push_token FROM tutors WHERE username = $1`
 
 	var lastSeen pgtype.Timestamptz
 	var t Tutor
@@ -155,7 +167,8 @@ func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 		&t.Rating,
 		&t.Education,
 		&t.Status,
-		&lastSeen); err != nil {
+		&lastSeen,
+		&t.PushToken); err != nil {
 		return t, err
 	}
 
@@ -278,14 +291,4 @@ func (r *Repository) RemoveSubjectsFromTutor(tid string) error {
 	}
 
 	return nil
-}
-
-func (r *Repository) ToTutorModel(t Tutor) model.Tutor {
-	var subjects []*model.Subject
-	for _, dbSubject := range t.Subjects {
-		subject := r.ToSubjectModel(dbSubject)
-		subjects = append(subjects, &subject)
-	}
-
-	return model.Tutor{ID: t.Id, Username: t.Username, FirstName: t.FirstName, LastName: t.LastName, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: subjects}
 }

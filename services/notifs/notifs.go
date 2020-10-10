@@ -7,16 +7,9 @@ import (
 
 	"firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
+	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/model"
 )
-
-type Notification struct {
-	Image    string
-	Title    string
-	Subtitle string
-	Read     bool
-	Created  time.Time
-}
 
 type NotifService struct {
 	fb     *firebase.App
@@ -68,7 +61,7 @@ func (ns *NotifService) DeleteUserMatchChannel(user string) {
 }
 
 // Takes a notification struct and the registration token of the user. Push notifications omit the image of the notification and time
-func (ns *NotifService) SendPushNotification(n Notification, token string) error {
+func (ns *NotifService) SendPushNotification(n db.Notification, token string) error {
 	message := &messaging.Message{
 		Data: map[string]string{
 			"title":    n.Title,
