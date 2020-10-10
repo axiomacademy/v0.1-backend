@@ -3,7 +3,9 @@ package notifs
 import (
 	"context"
 	"sync"
-	"time"
+	// "time"
+
+	log "github.com/sirupsen/logrus"
 
 	"firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
@@ -12,6 +14,7 @@ import (
 )
 
 type NotifService struct {
+	logger *log.Logger
 	fb     *firebase.App
 	fbm    *messaging.Client
 	nchans map[string]chan *model.MatchNotification
@@ -19,17 +22,19 @@ type NotifService struct {
 }
 
 // Remember to set your GOOGLE_APPLICATION_CREDENTIALS="/home/user/Downloads/service-account-file.json" in the env variables
-func (ns *NotifService) Init() error {
+func (ns *NotifService) Init(logger *log.Logger) {
+	ns.logger = logger
+
 	// Initialise firebase
 	fb, err := firebase.NewApp(context.Background(), nil)
 	if err != nil {
-		return err
+		ns.logger.WithField("service", "notification").Fatal("Unable to connect to firebase")
 	}
 
 	// Create messaging client
 	client, err := fb.Messaging(context.Background())
 	if err != nil {
-		return err
+		ns.logger.WithField("service", "notification").Fatal("Unable to create firebase messaging client")
 	}
 
 	ns.fb = fb
@@ -37,7 +42,7 @@ func (ns *NotifService) Init() error {
 	ns.nchans = map[string]chan *model.MatchNotification{}
 	ns.nmutex = sync.Mutex{}
 
-	return nil
+	ns.logger.WithField("service", "notification").Info("Successfully initialised")
 }
 
 func (ns *NotifService) SendMatchNotification(n model.MatchNotification, uid string) {
@@ -72,6 +77,11 @@ func (ns *NotifService) SendPushNotification(n db.Notification, token string) er
 
 	_, err := ns.fbm.Send(context.Background(), message)
 	if err != nil {
+		ns.logger.WithFields(log.Fields{
+			"service":         "notification",
+			"notification_id": n.Id,
+			"token":           token,
+		}).Error("Unable to send push notification")
 		return err
 	}
 

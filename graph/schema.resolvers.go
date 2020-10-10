@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/solderneer/axiom-backend/db"

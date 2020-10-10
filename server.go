@@ -1,10 +1,11 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -20,33 +21,59 @@ import (
 )
 
 const defaultPort = "8080"
+const defaultDbUrl = "postgresql://postgres:axiom@127.0.0.1:5432/postgres?sslmode=disable"
+const defaultSecret = "password"
 
 func main() {
+	// Setup logger
+	var logger = log.New()
+
+	// Get default environment variables
 	port := os.Getenv("PORT")
 	if port == "" {
+		log.WithFields(log.Fields{
+			"default_port": defaultPort,
+		}).Warn("No PORT environment variable, using default")
 		port = defaultPort
 	}
 
+	dbUrl := os.Getenv("DB_URL")
+	if dbUrl == "" {
+		log.WithFields(log.Fields{
+			"default_db_url": defaultDbUrl,
+		}).Warn("No DB_URL environment variable, using default")
+		dbUrl = defaultDbUrl
+	}
+
+	matchQueue := os.Getenv("MATCH_DIR")
+	if matchQueue == "" {
+		log.Warn("No MATCH_DIR environment variable, defaulting to an in-memory badger store")
+	}
+
+	secret := os.Getenv("SERVER_SECRET")
+	if matchQueue == "" {
+		log.WithFields(log.Fields{
+			"default_secret": defaultSecret,
+		}).Warn("No SERVER_SECRET environment variable, using default")
+	}
+
 	repo := db.Repository{}
-	repo.InitDb()
-	repo.Migrate()
+	repo.Init(logger, dbUrl)
+	repo.Migrate(dbUrl)
 
 	defer repo.Close()
 
 	// Initialising all services
 	ns := notifs.NotifService{}
-	if err := ns.Init(); err != nil {
-		log.Fatalf("Unable to initialise notification service")
-	}
+	ns.Init(logger)
 
 	ms := match.MatchService{}
-	matchQueue := os.Getenv("MATCH_DIR")
-	ms.Init(matchQueue)
+	ms.Init(logger, matchQueue, secret, &ns, &repo)
 	defer ms.Close()
 
 	// Binding services to resolver
 	resolver := graph.Resolver{
-		Secret: "password",
+		Secret: secret,
 		Repo:   &repo,
 		Ns:     &ns,
 		Ms:     &ms,
@@ -59,7 +86,7 @@ func main() {
 	r.Handle("/query", graphSrv)
 
 	// Auth middleware
-	amw := middlewares.AuthMiddleware{Secret: "password", Repo: &repo}
+	amw := middlewares.AuthMiddleware{Secret: secret, Repo: &repo}
 	r.Use(amw.Middleware)
 
 	httpSrv := &http.Server{
@@ -70,6 +97,8 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(httpSrv.ListenAndServe())
+	log.Infof("Server fully initialised. Connect to http://localhost:%s/ for GraphQL playground", port)
+	if err := httpSrv.ListenAndServe(); err != nil {
+		log.WithField("error", err.Error()).Fatal("Sudden error, terminating server")
+	}
 }

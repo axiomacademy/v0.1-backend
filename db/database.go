@@ -2,9 +2,8 @@ package db
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
@@ -15,15 +14,24 @@ import (
 
 type Repository struct {
 	dbPool *pgxpool.Pool
+	logger *log.Logger
 }
 
-func (r *Repository) InitDb() {
+func (r *Repository) Init(logger *log.Logger, dbUrl string) {
+	// Setup logger
+	r.logger = logger
+
 	var err error
-	r.dbPool, err = pgxpool.Connect(context.Background(), "postgresql://postgres:axiom@127.0.0.1:5432/postgres")
+	r.dbPool, err = pgxpool.Connect(context.Background(), dbUrl)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
+		r.logger.WithFields(log.Fields{
+			"service": "repository",
+			"dburl":   dbUrl,
+			"error":   err.Error(),
+		}).Fatal("Unable to connect to database")
 	}
+
+	r.logger.WithField("service", "repository").Info("Successfully initialised")
 }
 
 func (r *Repository) Close() {
@@ -31,15 +39,26 @@ func (r *Repository) Close() {
 }
 
 // TODO: Reuse the DBPool after typecasting pgxpool.Poor into *sql.DB using the pgx/stdlib library
-func (r *Repository) Migrate() {
-	m, err := migrate.New(
-		"file://db/migrations",
-		"postgresql://postgres:axiom@127.0.0.1:5432/postgres?sslmode=disable")
+func (r *Repository) Migrate(dbUrl string) {
+	m, err := migrate.New("file://db/migrations", dbUrl)
 	if err != nil {
-		log.Fatal(err)
+		r.logger.WithFields(log.Fields{
+			"service": "repository",
+			"dburl":   dbUrl,
+			"error":   err.Error(),
+		}).Fatal("Unable to setup migrations from db")
 	}
 
 	if err := m.Up(); err != nil {
-		fmt.Println(err)
+		if err.Error() == "no change" {
+			r.logger.WithField("service", "repository").Info("Database already at latest")
+		} else {
+			r.logger.WithFields(log.Fields{
+				"service": "repository",
+				"error":   err.Error(),
+			}).Fatal("Unable to apply migrations to db")
+		}
 	}
+
+	r.logger.WithField("service", "repository").Info("Successfully applied all database migrations")
 }

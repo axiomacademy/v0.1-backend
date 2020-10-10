@@ -3,8 +3,9 @@ package match
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/dgrijalva/jwt-go"
@@ -24,18 +25,27 @@ type MatchStatus struct {
 }
 
 type MatchService struct {
-	db *badger.DB
+	logger *log.Logger
+	db     *badger.DB
 
-	Secret string
-	Ns     *notifs.NotifService
-	Repo   *db.Repository
+	secret string
+	ns     *notifs.NotifService
+	repo   *db.Repository
 }
 
-func (ms *MatchService) Init(badgerDir string) error {
+func (ms *MatchService) Init(logger *log.Logger, badgerDir string, secret string, ns *notifs.NotifService, repo *db.Repository) {
+	ms.logger = logger
+	ms.secret = secret
+	ms.ns = ns
+	ms.repo = repo
+
 	var err error
 	ms.db, err = ms.openBadger(badgerDir)
+	if err != nil {
+		ms.logger.WithField("service", "match").Fatal("Unable to open badger store")
+	}
 
-	return err
+	ms.logger.WithField("service", "match").Info("Successfully initialised")
 }
 
 func (ms *MatchService) Close() {
@@ -110,7 +120,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 	err := ms.updateMatch(mid, mstatus)
 
 	go func() {
-		tids, err := ms.Repo.GetOnlineAffinityMatches(s.Id, subject)
+		tids, err := ms.repo.GetOnlineAffinityMatches(s.Id, subject)
 		if err != nil {
 			mstatus := MatchStatus{
 				Status: "FAILED",
@@ -123,7 +133,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 		}
 
 		if len(tids) < 15 {
-			rtids, err := ms.Repo.GetOnlineRandomMatches(subject, 15-len(tids))
+			rtids, err := ms.repo.GetOnlineRandomMatches(subject, 15-len(tids))
 			if err != nil {
 				mstatus := MatchStatus{
 					Status: "FAILED",
@@ -137,7 +147,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 			tids = append(tids, rtids...)
 		}
 
-		mstudent := ms.Repo.ToStudentModel(s)
+		mstudent := ms.repo.ToStudentModel(s)
 		token, err := ms.generateMatchToken(mid)
 
 		// Error generating token
@@ -152,7 +162,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 			return
 		}
 
-		msubject := ms.Repo.ToSubjectModel(subject)
+		msubject := ms.repo.ToSubjectModel(subject)
 
 		for _, tid := range tids {
 			n := model.MatchNotification{
@@ -161,7 +171,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 				Token:   token,
 			}
 
-			ms.Ns.SendMatchNotification(n, tid)
+			ms.ns.SendMatchNotification(n, tid)
 			time.Sleep(time.Duration(30) * time.Second)
 
 			// Go and check the match queue for a match
@@ -208,12 +218,12 @@ func (ms *MatchService) AcceptOnDemandMatch(t db.Tutor, token string) (*db.Lesso
 	}
 
 	// Creating the lesson
-	subject, err := ms.Repo.GetSubject(status.SubjectName, status.SubjectStandard)
+	subject, err := ms.repo.GetSubject(status.SubjectName, status.SubjectStandard)
 	if err != nil {
 		return nil, err
 	}
 
-	l, err := ms.Repo.CreateLesson(subject, t.Id, status.Sid, 0, time.Now())
+	l, err := ms.repo.CreateLesson(subject, t.Id, status.Sid, 0, time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +258,7 @@ func (ms *MatchService) GetOnDemandMatch(s db.Student, mid string) (*db.Lesson, 
 	case "FAILED":
 		return nil, errors.New("Matching failed")
 	case "MATCHED":
-		l, err := ms.Repo.GetLessonById(status.Lid)
+		l, err := ms.repo.GetLessonById(status.Lid)
 		if err != nil {
 			return nil, err
 		}
@@ -267,7 +277,7 @@ func (ms *MatchService) generateMatchToken(id string) (string, error) {
 	/* Set token claims */
 	claims["id"] = id
 	claims["exp"] = time.Now().Add(time.Second * 30).Unix()
-	tokenString, err := token.SignedString([]byte(ms.Secret))
+	tokenString, err := token.SignedString([]byte(ms.secret))
 	if err != nil {
 		log.Fatal("Error in generating key")
 		return "", err
@@ -278,7 +288,7 @@ func (ms *MatchService) generateMatchToken(id string) (string, error) {
 //ParseToken parses a jwt token and returns the mid it it's claims
 func (ms *MatchService) parseMatchToken(tokenStr string) (string, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		return []byte(ms.Secret), nil
+		return []byte(ms.secret), nil
 	})
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		id := claims["id"].(string)
