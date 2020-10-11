@@ -4,9 +4,9 @@ CREATE TABLE IF NOT EXISTS lessons (
   summary TEXT,
   tutor VARCHAR(38) NOT NULL,
   student VARCHAR(38) NOT NULL,
-  duration INT NOT NULL,
+  scheduled BOOLEAN NOT NULL,
   start_time TIMESTAMPTZ NOT NULL,
-  chat TEXT,
+  end_time TIMESTAMPTZ NOT NULL,
   PRIMARY KEY(id),
   CONSTRAINT fk_tutor
     FOREIGN KEY(tutor)

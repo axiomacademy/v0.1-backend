@@ -34,3 +34,14 @@ CREATE TABLE IF NOT EXISTS teaching (
     FOREIGN KEY(subject)
       REFERENCES subjects(id)
 );
+
+CREATE TABLE IF NOT EXISTS timeblocks (
+  id VARCHAR(38) NOT NULL UNIQUE,
+  tutor VARCHAR(38) NOT NULL,
+  start_time TIMESTAMPTZ NOT NULL,
+  end_time TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY(id),
+  CONSTRAINT fk_tutor
+    FOREIGN KEY(tutor)
+      REFERENCES tutors(id)
+);

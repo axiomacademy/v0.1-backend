@@ -64,11 +64,17 @@ func (ms *MatchService) updateMatch(mid string, status MatchStatus) error {
 	err := ms.db.Update(func(txn *badger.Txn) error {
 		raw, err := json.Marshal(status)
 		if err != nil {
+			ms.sendError(err, "Error marshalling match status")
 			return err
 		}
 
 		err = txn.Set([]byte(mid), raw)
-		return err
+		if err != nil {
+			ms.sendError(err, "Error updating match status")
+			return err
+		}
+
+		return nil
 	})
 
 	return err
@@ -77,7 +83,12 @@ func (ms *MatchService) updateMatch(mid string, status MatchStatus) error {
 func (ms *MatchService) deleteMatch(mid string) error {
 	err := ms.db.Update(func(txn *badger.Txn) error {
 		err := txn.Delete([]byte(mid))
-		return err
+		if err != nil {
+			ms.sendError(err, "Error deleting match status")
+			return err
+		}
+
+		return nil
 	})
 
 	return err
@@ -89,15 +100,21 @@ func (ms *MatchService) getMatch(mid string) (MatchStatus, error) {
 	err := ms.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(mid))
 		if err != nil {
+			ms.sendError(err, "Error retrieving match status")
 			return err
 		}
 
 		rawStatus, err := item.ValueCopy(nil)
 		if err != nil {
+			ms.sendError(err, "Error parsing match status")
 			return err
 		}
 
-		json.Unmarshal([]byte(rawStatus), &status)
+		err = json.Unmarshal([]byte(rawStatus), &status)
+		if err != nil {
+			ms.sendError(err, "Error marshalling match status")
+			return err
+		}
 		return nil
 	})
 
@@ -128,6 +145,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 				Lid:    "",
 			}
 
+			ms.sendError(err, "Error retrieving database matches")
 			ms.updateMatch(mid, mstatus)
 			return
 		}
@@ -141,6 +159,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 					Lid:    "",
 				}
 
+				ms.sendError(err, "Error retrieving database matches")
 				ms.updateMatch(mid, mstatus)
 				return
 			}
@@ -158,6 +177,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 				Lid:    "",
 			}
 
+			ms.sendError(err, "Error generating match token")
 			ms.updateMatch(mid, mstatus)
 			return
 		}
@@ -183,6 +203,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 					Lid:    "",
 				}
 
+				ms.sendError(err, "Error retreiving match")
 				ms.updateMatch(mid, mstatus)
 				return
 			}
@@ -198,7 +219,6 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 		}
 
 		ms.updateMatch(mid, mstatus)
-
 		return
 	}()
 
@@ -208,23 +228,27 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject) (string,
 func (ms *MatchService) AcceptOnDemandMatch(t db.Tutor, token string) (*db.Lesson, error) {
 	mid, err := ms.parseMatchToken(token)
 	if err != nil {
+		ms.sendError(err, "Unable to parse match token")
 		return nil, err
 	}
 
 	// Fetching the match
 	status, err := ms.getMatch(mid)
 	if err != nil {
+		ms.sendError(err, "Unable to retrieve match")
 		return nil, err
 	}
 
 	// Creating the lesson
 	subject, err := ms.repo.GetSubject(status.SubjectName, status.SubjectStandard)
 	if err != nil {
+		ms.sendError(err, "Unable to create subject in database")
 		return nil, err
 	}
 
 	l, err := ms.repo.CreateLesson(subject, t.Id, status.Sid, 0, time.Now())
 	if err != nil {
+		ms.sendError(err, "Unable to create lesson in database")
 		return nil, err
 	}
 
@@ -233,6 +257,7 @@ func (ms *MatchService) AcceptOnDemandMatch(t db.Tutor, token string) (*db.Lesso
 	status.Status = "MATCHED"
 	err = ms.updateMatch(mid, status)
 	if err != nil {
+		ms.sendError(err, "Unable to update match status")
 		return nil, err
 	}
 
@@ -244,11 +269,13 @@ func (ms *MatchService) GetOnDemandMatch(s db.Student, mid string) (*db.Lesson, 
 	// Fetching the match
 	status, err := ms.getMatch(mid)
 	if err != nil {
+		ms.sendError(err, "Unable to retrieve match")
 		return nil, err
 	}
 
 	// Check that the student is authorised
 	if status.Sid != s.Id {
+		ms.sendError(err, "Invalid auth access!")
 		return nil, errors.New("Unauthorised to access match")
 	}
 
@@ -260,6 +287,7 @@ func (ms *MatchService) GetOnDemandMatch(s db.Student, mid string) (*db.Lesson, 
 	case "MATCHED":
 		l, err := ms.repo.GetLessonById(status.Lid)
 		if err != nil {
+			ms.sendError(err, "Unable to retrieve lesson from database")
 			return nil, err
 		}
 		ms.deleteMatch(mid)
@@ -279,7 +307,6 @@ func (ms *MatchService) generateMatchToken(id string) (string, error) {
 	claims["exp"] = time.Now().Add(time.Second * 30).Unix()
 	tokenString, err := token.SignedString([]byte(ms.secret))
 	if err != nil {
-		log.Fatal("Error in generating key")
 		return "", err
 	}
 	return tokenString, nil
@@ -296,4 +323,12 @@ func (ms *MatchService) parseMatchToken(tokenStr string) (string, error) {
 	} else {
 		return "", err
 	}
+}
+
+// Making sending errors easier
+func (ms *MatchService) sendError(err error, message string) {
+	ms.logger.WithFields(log.Fields{
+		"service": "match",
+		"err":     err.Error(),
+	}).Error(message)
 }
