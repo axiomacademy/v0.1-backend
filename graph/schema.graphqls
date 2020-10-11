@@ -12,6 +12,7 @@ interface User {
 }
 
 scalar Date
+scalar DateTime
 
 enum HeartbeatStatus {
   AVAILABLE
@@ -64,6 +65,13 @@ type Heartbeat {
   lastSeen: Int!
 }
 
+type Message {
+  to: String!
+  from: String!
+  timestamp: DateTime!
+  message: String!
+}
+
 #################################### INPUTS ################################################
 
 input NewStudent {
@@ -93,11 +101,24 @@ input LoginInfo {
   password: String!
 }
 
+input SendMessage {
+  to: String!
+  message: String!
+}
+
+input MessageRange {
+  to: String!
+  start: DateTime!
+  end: DateTime!
+}
+
 ############################### QUERIES ####################################################
 
 type Query {
   self: User!,
   lessons: [Lesson!]!
+
+  messages(input: MessageRange!): [Message!]!
 }
 
 ############################### MUTATIONS ####################################################
@@ -111,9 +132,12 @@ type Mutation {
   refreshToken: String!
 
   updateHeartbeat(input: HeartbeatStatus!): String!
+
+  sendMessage(input: SendMessage!): String!
 }
 
 ############################### MUTATIONS ####################################################
 type Subscription {
   subscribeNotifications(user: String!): Notification!
+  subscribeMessages: Message!
 }

@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/solderneer/axiom-backend/db"
@@ -149,6 +150,10 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 	return token, nil
 }
 
+func (r *mutationResolver) SendMessage(ctx context.Context, input model.SendMessage) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
@@ -199,6 +204,10 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	return lessons, nil
 }
 
+func (r *queryResolver) Messages(ctx context.Context, input model.MessageRange) ([]*model.Message, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {
 	// Creating the channel
 	nchan := make(chan *model.Notification, 1)
@@ -215,6 +224,10 @@ func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user 
 	}()
 
 	return nchan, nil
+}
+
+func (r *subscriptionResolver) SubscribeMessages(ctx context.Context) (<-chan *model.Message, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.

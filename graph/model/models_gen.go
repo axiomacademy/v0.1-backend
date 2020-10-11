@@ -33,6 +33,19 @@ type LoginInfo struct {
 	Password string `json:"password"`
 }
 
+type Message struct {
+	To        string `json:"to"`
+	From      string `json:"from"`
+	Timestamp string `json:"timestamp"`
+	Message   string `json:"message"`
+}
+
+type MessageRange struct {
+	To    string `json:"to"`
+	Start string `json:"start"`
+	End   string `json:"end"`
+}
+
 type NewStudent struct {
 	Username   string `json:"username"`
 	FirstName  string `json:"firstName"`
@@ -58,6 +71,11 @@ type NewTutor struct {
 type Notification struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
+}
+
+type SendMessage struct {
+	To      string `json:"to"`
+	Message string `json:"message"`
 }
 
 type Student struct {
