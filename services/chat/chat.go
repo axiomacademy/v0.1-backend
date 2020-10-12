@@ -18,12 +18,25 @@ type MessageRange struct {
 }
 
 func FromModelMessageRange(m model.MessageRange) (*MessageRange, error) {
-	start, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", m.Start)
+	if m.Start == nil && m.End == nil {
+		start := time.Date(0, 0, 0, 0, 0, 0 ,0, time.UTC).Format("2006-01-02 15:04:05.999999999 -0700 MST")
+		m.Start = &start
+		end := time.Now().Format("2006-01-02 15:04:05.999999999 -0700 MST")
+		m.End = &end
+	} else if m.Start == nil {
+		start := time.Date(0, 0, 0, 0, 0, 0 ,0, time.UTC).Format("2006-01-02 15:04:05.999999999 -0700 MST")
+		m.Start = &start
+	} else if m.End == nil {
+		end := time.Now().Format("2006-01-02 15:04:05.999999999 -0700 MST")
+		m.End = &end
+	}
+
+	start, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", *m.Start)
 	if err != nil {
 		return nil, err
 	}
 
-	end, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", m.End)
+	end, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", *m.End)
 	if err != nil {
 		return nil, err
 	}

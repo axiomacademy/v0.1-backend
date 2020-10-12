@@ -108,8 +108,8 @@ input SendMessage {
 
 input MessageRange {
   to: String!
-  start: DateTime!
-  end: DateTime!
+  start: DateTime
+  end: DateTime
 }
 
 ############################### QUERIES ####################################################

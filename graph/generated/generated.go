@@ -699,8 +699,8 @@ input SendMessage {
 
 input MessageRange {
   to: String!
-  start: DateTime!
-  end: DateTime!
+  start: DateTime
+  end: DateTime
 }
 
 ############################### QUERIES ####################################################
@@ -3689,7 +3689,7 @@ func (ec *executionContext) unmarshalInputMessageRange(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("start"))
-			it.Start, err = ec.unmarshalNDateTime2string(ctx, v)
+			it.Start, err = ec.unmarshalODateTime2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3697,7 +3697,7 @@ func (ec *executionContext) unmarshalInputMessageRange(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("end"))
-			it.End, err = ec.unmarshalNDateTime2string(ctx, v)
+			it.End, err = ec.unmarshalODateTime2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5163,6 +5163,21 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
+}
+
+func (ec *executionContext) unmarshalODateTime2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalString(v)
+	return &res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) marshalODateTime2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalString(*v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

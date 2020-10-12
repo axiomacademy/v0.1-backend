@@ -253,9 +253,9 @@ func (r *queryResolver) Messages(ctx context.Context, input model.MessageRange) 
 
 	switchedUID := input.To
 	switchedMR := model.MessageRange {
-		To: uid,
+		To:    uid,
 		Start: input.Start,
-		End: input.End,
+		End:   input.End,
 	}
 
 	otherMessages, err := r.Cs.GetMessages(ctx, switchedUID, switchedMR)

@@ -41,9 +41,9 @@ type Message struct {
 }
 
 type MessageRange struct {
-	To    string `json:"to"`
-	Start string `json:"start"`
-	End   string `json:"end"`
+	To    string  `json:"to"`
+	Start *string `json:"start"`
+	End   *string `json:"end"`
 }
 
 type NewStudent struct {
