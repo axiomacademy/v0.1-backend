@@ -3,11 +3,12 @@ package chat
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
-	"github.com/solderneer/axiom-backend/graph/model"
 	"github.com/influxdata/influxdb-client-go/v2"
+	"github.com/solderneer/axiom-backend/graph/model"
 )
 
 type MessageRange struct {
@@ -42,6 +43,35 @@ type Chat struct {
 	bucket string
 	channels map[string] chan *model.Message
 	mux sync.Mutex
+}
+
+const defaultInfluxURL = "http://localhost:8086"
+const defaultAuthToken = "user:pass"
+const defaultOrg = "axiom"
+const defaultBucket = "messages"
+
+func InitChat() *Chat {
+	influxURL := os.Getenv("INFLUX_URL")
+	if influxURL == "" {
+		influxURL = defaultInfluxURL
+	}
+
+	authToken := os.Getenv("INFLUX_AUTH_TOKEN")
+	if authToken == "" {
+		authToken = defaultAuthToken
+	}
+
+	org := os.Getenv("INFLUX_ORG")
+	if org == "" {
+		org = defaultOrg
+	}
+
+	bucket := os.Getenv("INFLUX_BUCKET")
+	if bucket == "" {
+		bucket = defaultBucket
+	}
+
+	return NewChat(influxURL, authToken, org, bucket)
 }
 
 func NewChat(influxURL string, authToken string, org string, bucket string) *Chat {
