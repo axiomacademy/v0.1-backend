@@ -18,7 +18,8 @@ func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStu
 	// Hashing password
 	hashedPassword, err := auth.HashPassword(input.Password)
 	if err != nil {
-		return "", errors.New("Error hashing password")
+		r.sendError(err, "Cannot hash password")
+		return "", InternalServerError
 	}
 
 	s, err := r.Repo.CreateStudent(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic)
@@ -28,7 +29,8 @@ func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStu
 
 	token, err := auth.GenerateToken(s.Id, r.Secret)
 	if err != nil {
-		return "", errors.New("Error generating token")
+		r.sendError(err, "Cannot generate JWT")
+		return "", InternalServerError
 	}
 
 	return token, nil
@@ -47,7 +49,8 @@ func (r *mutationResolver) LoginStudent(ctx context.Context, input model.LoginIn
 
 	token, err := auth.GenerateToken(s.Id, r.Secret)
 	if err != nil {
-		return "", errors.New("Error generating token")
+		r.sendError(err, "Cannot generate JWT")
+		return "", InternalServerError
 	}
 
 	return token, nil
@@ -57,24 +60,28 @@ func (r *mutationResolver) CreateTutor(ctx context.Context, input model.NewTutor
 	// Hashing password
 	hashedPassword, err := auth.HashPassword(input.Password)
 	if err != nil {
-		return "", errors.New("Error hashing password")
+		r.sendError(err, "Cannot hash password")
+		return "", InternalServerError
 	}
 
 	// DEFAULT RATING IS 3
 	// Create db.Subject type
 	subjects, err := r.Repo.GetSubjects(input.Subjects)
 	if err != nil {
-		return "", err
+		r.sendError(err, "Cannnot retrieve subjects from database")
+		return "", InternalServerError
 	}
 
 	t, err := r.Repo.CreateTutor(input.Username, input.FirstName, input.LastName, input.Email, hashedPassword, input.ProfilePic, input.HourlyRate, 3, input.Bio, input.Education, subjects)
 	if err != nil {
-		return "", err
+		r.sendError(err, "Cannot create tutor in database")
+		return "", InternalServerError
 	}
 
 	token, err := auth.GenerateToken(t.Id, r.Secret)
 	if err != nil {
-		return "", errors.New("Error generating token")
+		r.sendError(err, "Cannot generate JWT")
+		return "", InternalServerError
 	}
 
 	return token, nil
@@ -93,7 +100,8 @@ func (r *mutationResolver) LoginTutor(ctx context.Context, input model.LoginInfo
 
 	token, err := auth.GenerateToken(t.Id, r.Secret)
 	if err != nil {
-		return "", errors.New("Error generating token")
+		r.sendError(err, "Cannot generate JWT")
+		return "", InternalServerError
 	}
 
 	return token, nil
@@ -112,17 +120,19 @@ func (r *mutationResolver) RefreshToken(ctx context.Context) (string, error) {
 
 		token, err = auth.GenerateToken(s.Id, r.Secret)
 		if err != nil {
-			return "", errors.New("Error generating token")
+			r.sendError(err, "Cannot generate JWT")
+			return "", InternalServerError
 		}
 	} else if utype == "t" {
 		t := u.(db.Tutor)
 
 		token, err = auth.GenerateToken(t.Id, r.Secret)
 		if err != nil {
-			return "", errors.New("Error generating token")
+			r.sendError(err, "Cannot generate JWT")
+			return "", InternalServerError
 		}
 	} else {
-		return "", errors.New("Unauthorised, please log in")
+		return "", Unauthorised
 	}
 
 	return token, nil
@@ -135,7 +145,8 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 	}
 
 	if utype != "t" {
-		return "", errors.New("Invalid user type for Heartbeat")
+		r.sendError(err, "Only tutors have persission to update heartbeat")
+		return "", Unauthorised
 	}
 
 	t := u.(db.Tutor)
@@ -149,7 +160,8 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 
 	token, err := auth.GenerateToken(t.Id, r.Secret)
 	if err != nil {
-		return "", errors.New("Error generating token")
+		r.sendError(err, "Cannot generate JWT")
+		return "", InternalServerError
 	}
 
 	return token, nil
@@ -158,54 +170,63 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 func (r *mutationResolver) MatchOnDemand(ctx context.Context, input model.MatchRequest) (string, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return "", err
+		return "", Unauthorised
 	}
 
 	if utype == "s" {
 		s := u.(db.Student)
 		subject, err := r.Repo.GetSubject(input.Subject.Name.String(), input.Subject.Standard.String())
 		if err != nil {
-			return "", err
+			r.sendError(err, "Cannot get subject from database")
+			return "", InternalServerError
 		}
 
 		mid, err := r.Ms.MatchOnDemand(s, subject)
 		return mid, err
 	} else if utype == "t" {
-		return "", errors.New("Only students can request for matches")
+		r.sendError(err, "Only students can request for a match")
+		return "", Unauthorised
 	} else {
-		return "", errors.New("Unauthorised, please log in")
+		return "", Unauthorised
 	}
 }
 
 func (r *mutationResolver) AcceptMatch(ctx context.Context, input string) (*model.Lesson, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, Unauthorised
 	}
 
 	if utype == "s" {
-		return nil, errors.New("Only students can request for matches")
+		r.sendError(err, "Only tutors can accept a match")
+		return nil, Unauthorised
 	} else if utype == "t" {
 		t := u.(db.Tutor)
 		l, err := r.Ms.AcceptOnDemandMatch(t, input)
 		ml, err := r.Repo.ToLessonModel(*l)
-		return &ml, err
+		if err != nil {
+			r.sendError(err, "Cannot accept match")
+			return nil, InternalServerError
+		}
+		return &ml, nil
 	} else {
-		return nil, errors.New("Unauthorised, please log in")
+		return nil, Unauthorised
 	}
 }
 
 func (r *mutationResolver) UpdateNotification(ctx context.Context, input model.UpdateNotification) (*model.Notification, error) {
 	n, err := r.Repo.GetNotificationById(input.ID)
 	if err != nil {
-		return nil, err
+		r.sendError(err, "Cannot retrieve notification from database")
+		return nil, InternalServerError
 	}
 
 	n.Read = input.Read
 
 	err = r.Repo.UpdateNotification(n)
 	if err != nil {
-		return nil, err
+		r.sendError(err, "Cannot update notification in database")
+		return nil, InternalServerError
 	}
 
 	mn := r.Repo.ToNotificationModel(n)
@@ -215,28 +236,38 @@ func (r *mutationResolver) UpdateNotification(ctx context.Context, input model.U
 func (r *mutationResolver) RegisterPushNotification(ctx context.Context, input string) (string, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return "", err
+		return "", Unauthorised
 	}
 
 	if utype == "s" {
 		s := u.(db.Student)
 		s.PushToken = input
 		err := r.Repo.UpdateStudent(s)
-		return input, err
+
+		if err != nil {
+			r.sendError(err, "Cannot update student in db")
+			return "", InternalServerError
+		}
+		return input, nil
 	} else if utype == "t" {
 		t := u.(db.Tutor)
 		t.PushToken = input
 		err := r.Repo.UpdateTutor(t)
-		return input, err
+
+		if err != nil {
+			r.sendError(err, "Cannot update tutor in db")
+			return "", InternalServerError
+		}
+		return input, nil
 	} else {
-		return "", errors.New("Unauthorised, please log in")
+		return "", Unauthorised
 	}
 }
 
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, Unauthorised
 	}
 
 	if utype == "s" {
@@ -246,14 +277,14 @@ func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
 		t := u.(db.Tutor)
 		return r.Repo.ToTutorModel(t), nil
 	} else {
-		return nil, errors.New("Unauthorised, please log in")
+		return nil, Unauthorised
 	}
 }
 
 func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, Unauthorised
 	}
 
 	var dbLessons []db.Lesson
@@ -261,16 +292,18 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 		s := u.(db.Student)
 		dbLessons, err = r.Repo.GetStudentLessons(s.Id)
 		if err != nil {
-			return nil, err
+			r.sendError(err, "Cannot retrieve student lessons from db")
+			return nil, InternalServerError
 		}
 	} else if utype == "t" {
 		t := u.(db.Tutor)
 		dbLessons, err = r.Repo.GetTutorLessons(t.Id)
 		if err != nil {
-			return nil, err
+			r.sendError(err, "Cannot retrieve tutor lessons from db")
+			return nil, InternalServerError
 		}
 	} else {
-		return nil, errors.New("Unauthorised, please log in")
+		return nil, Unauthorised
 	}
 
 	// Convert dbLessons to gql Lesson Type
@@ -278,7 +311,8 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	for _, l := range dbLessons {
 		rl, err := r.Repo.ToLessonModel(l)
 		if err != nil {
-			return nil, err
+			r.sendError(err, "Cannot parse lesson")
+			return nil, Unauthorised
 		}
 		lessons = append(lessons, &rl)
 	}
@@ -289,7 +323,7 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 func (r *queryResolver) Notifications(ctx context.Context, input model.PaginatedRequest) ([]*model.Notification, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, Unauthorised
 	}
 
 	var dbNotifications []db.Notification
@@ -297,13 +331,15 @@ func (r *queryResolver) Notifications(ctx context.Context, input model.Paginated
 		s := u.(db.Student)
 		dbNotifications, err = r.Repo.GetUserNotifications(s.Id, input.StartTime, input.EndTime)
 		if err != nil {
-			return nil, err
+			r.sendError(err, "Cannot retrieve student notifications from database")
+			return nil, InternalServerError
 		}
 	} else if utype == "t" {
 		t := u.(db.Tutor)
 		dbNotifications, err = r.Repo.GetUserNotifications(t.Id, input.StartTime, input.EndTime)
 		if err != nil {
-			return nil, err
+			r.sendError(err, "Cannot retrieve tutor notifications from database")
+			return nil, InternalServerError
 		}
 	} else {
 		return nil, errors.New("Unauthorised, please log in")
@@ -314,7 +350,8 @@ func (r *queryResolver) Notifications(ctx context.Context, input model.Paginated
 	for _, n := range dbNotifications {
 		rn := r.Repo.ToNotificationModel(n)
 		if err != nil {
-			return nil, err
+			r.sendError(err, "Cannot parse notification model")
+			return nil, InternalServerError
 		}
 		notifications = append(notifications, &rn)
 	}
@@ -325,18 +362,23 @@ func (r *queryResolver) Notifications(ctx context.Context, input model.Paginated
 func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model.Lesson, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, Unauthorised
 	}
 
 	if utype == "s" {
 		s := u.(db.Student)
 		l, err := r.Ms.GetOnDemandMatch(s, input)
 		ml, err := r.Repo.ToLessonModel(*l)
-		return &ml, err
+
+		if err != nil {
+			return &ml, err
+		}
+
+		return &ml, nil
 	} else if utype == "t" {
-		return nil, errors.New("Only students can request for matches")
+		return nil, Unauthorised
 	} else {
-		return nil, errors.New("Unauthorised, please log in")
+		return nil, Unauthorised
 	}
 }
 

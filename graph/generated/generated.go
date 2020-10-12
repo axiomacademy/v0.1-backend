@@ -817,7 +817,7 @@ input PaginatedRequest {
 ############################### QUERIES ####################################################
 
 type Query {
-  self: User!,
+  self: User!
   lessons: [Lesson!]!
   notifications(input: PaginatedRequest!): [Notification!]!
   

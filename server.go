@@ -74,6 +74,7 @@ func main() {
 	// Binding services to resolver
 	resolver := graph.Resolver{
 		Secret: secret,
+		Logger: logger,
 		Repo:   &repo,
 		Ns:     &ns,
 		Ms:     &ms,
