@@ -17,6 +17,7 @@ import (
 	"github.com/solderneer/axiom-backend/graph/model"
 	"github.com/solderneer/axiom-backend/middlewares"
 
+	"github.com/solderneer/axiom-backend/services/chat"
 	"github.com/solderneer/axiom-backend/services/notifs"
 )
 
@@ -37,11 +38,15 @@ func main() {
 	// Initialising all services
 	ns := notifs.NotifService{Nchans: map[string]chan *model.Notification{}, Nmutex: sync.Mutex{}}
 
+	cs := chat.InitChat()
+	defer cs.Close()
+
 	// Binding services to resolver
 	resolver := graph.Resolver{
 		Secret: "password",
 		Repo:   &repo,
 		Ns:     &ns,
+		Cs:			cs,
 	}
 
 	graphSrv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver}))

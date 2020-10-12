@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/solderneer/axiom-backend/db"
@@ -151,7 +150,33 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 }
 
 func (r *mutationResolver) SendMessage(ctx context.Context, input model.SendMessage) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var uid string
+	if utype == "s" {
+		s := u.(db.Student)
+		uid = s.Id
+	} else if utype == "t" {
+		t := u.(db.Tutor)
+		uid = t.Id
+	} else {
+		return "", errors.New("Unauthorised, please log in")
+	}
+
+	err = r.Cs.SendMessage(ctx, uid, input)
+	if err != nil {
+		return "", nil
+	}
+
+	token, err := auth.GenerateToken(uid, r.Secret)
+	if err != nil {
+		return "", errors.New("Error generating token")
+	}
+
+	return token, nil
 }
 
 func (r *queryResolver) Self(ctx context.Context) (model.User, error) {
@@ -205,7 +230,40 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 }
 
 func (r *queryResolver) Messages(ctx context.Context, input model.MessageRange) ([]*model.Message, error) {
-	panic(fmt.Errorf("not implemented"))
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var uid string
+	if utype == "s" {
+		s := u.(db.Student)
+		uid = s.Id
+	} else if utype == "t" {
+		t := u.(db.Tutor)
+		uid = t.Id
+	} else {
+		return nil, errors.New("Unauthorised, please log in")
+	}
+
+	messages, err := r.Cs.GetMessages(ctx, uid, input)
+	if err != nil {
+		return nil, err
+	}
+
+	switchedUID := input.To
+	switchedMR := model.MessageRange {
+		To: uid,
+		Start: input.Start,
+		End: input.End,
+	}
+
+	otherMessages, err := r.Cs.GetMessages(ctx, switchedUID, switchedMR)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(messages, otherMessages...), nil
 }
 
 func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user string) (<-chan *model.Notification, error) {
@@ -227,7 +285,24 @@ func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context, user 
 }
 
 func (r *subscriptionResolver) SubscribeMessages(ctx context.Context) (<-chan *model.Message, error) {
-	panic(fmt.Errorf("not implemented"))
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var uid string
+	if utype == "s" {
+		s := u.(db.Student)
+		uid = s.Id
+	} else if utype == "t" {
+		t := u.(db.Tutor)
+		uid = t.Id
+	} else {
+		return nil, errors.New("Unauthorised, please log in")
+	}
+
+	cchan := r.Cs.SubscribeMessages(uid, ctx.Done())
+	return cchan, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
