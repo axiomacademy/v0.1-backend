@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS teaching (
       REFERENCES subjects(id)
 );
 
-CREATE TABLE IF NOT EXISTS timeblocks (
+CREATE TABLE IF NOT EXISTS availablities (
   id VARCHAR(38) NOT NULL UNIQUE,
   tutor VARCHAR(38) NOT NULL,
   start_time TIMESTAMPTZ NOT NULL,

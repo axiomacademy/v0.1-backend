@@ -82,3 +82,75 @@ func (r *Repository) GetSubjectById(sid string) (Subject, error) {
 
 	return subject, nil
 }
+
+func (r *Repository) GetTutorSubjects(tid string) ([]Subject, error) {
+	sql := `SELECT subjects.id, subjects.name, subjects.standard FROM subjects INNER JOIN teaching ON subjects.id = teaching.subject WHERE teaching.tutor = $1`
+
+	var dbSubjects []Subject
+
+	rows, err := r.dbPool.Query(context.Background(), sql, tid)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var subject Subject
+		if err := rows.Scan(&subject.Id, &subject.Name, &subject.Standard); err != nil {
+			return nil, err
+		}
+
+		dbSubjects = append(dbSubjects, subject)
+
+		if err = rows.Err(); err != nil {
+			return nil, err
+		}
+	}
+
+	return dbSubjects, nil
+}
+
+func (r *Repository) AddSubjectsToTutor(tid string, subjects []Subject) error {
+	tx, err := r.dbPool.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback(context.Background())
+
+	sql := `INSERT INTO teaching (tutor, subject) VALUES ($1, $2)`
+	for _, s := range subjects {
+		_, err = tx.Exec(context.Background(), sql, tid, s.Id)
+		if err != nil {
+			return err
+		}
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Repository) RemoveSubjectsFromTutor(tid string) error {
+	tx, err := r.dbPool.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback(context.Background())
+
+	sql := `DELETE FROM teaching WHERE tutor = $1`
+	_, err = tx.Exec(context.Background(), sql, tid)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
