@@ -167,7 +167,7 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 	return token, nil
 }
 
-func (r *mutationResolver) MatchOnDemand(ctx context.Context, input model.MatchRequest) (string, error) {
+func (r *mutationResolver) MatchOnDemand(ctx context.Context, input model.OnDemandMatchRequest) (string, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
 		return "", Unauthorised
@@ -181,7 +181,7 @@ func (r *mutationResolver) MatchOnDemand(ctx context.Context, input model.MatchR
 			return "", InternalServerError
 		}
 
-		mid, err := r.Ms.MatchOnDemand(s, subject)
+		mid, err := r.Ms.MatchOnDemand(s, subject, 20)
 		return mid, err
 	} else if utype == "t" {
 		r.sendError(err, "Only students can request for a match")
@@ -191,7 +191,42 @@ func (r *mutationResolver) MatchOnDemand(ctx context.Context, input model.MatchR
 	}
 }
 
-func (r *mutationResolver) AcceptMatch(ctx context.Context, input string) (*model.Lesson, error) {
+func (r *mutationResolver) RequestScheduledMatch(ctx context.Context, input model.ScheduledMatchRequest) (string, error) {
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", Unauthorised
+	}
+
+	if utype == "s" {
+		s := u.(db.Student)
+		// Retrieve the subject
+		sub, err := r.Repo.GetSubject(input.Subject.Name.String(), input.Subject.Standard.String())
+		if err != nil {
+			r.sendError(err, "Cannot retrieve subject from db")
+			return "", InternalServerError
+		}
+		// Retrieve the tutor
+		t, err := r.Repo.GetTutorById(input.Tutor)
+		if err != nil {
+			r.sendError(err, "Cannot retrieve tutor from db")
+			return "", InternalServerError
+		}
+		m, err := r.Ms.RequestScheduledMatch(s, t, sub, input.Time.StartTime, input.Time.EndTime)
+		if err != nil {
+			r.sendError(err, "Cannot request new match")
+			return "", InternalServerError
+		}
+
+		return m.Id, nil
+	} else if utype == "t" {
+		r.sendError(err, "Only students can request a match")
+		return "", Unauthorised
+	} else {
+		return "", Unauthorised
+	}
+}
+
+func (r *mutationResolver) AcceptOnDemandMatch(ctx context.Context, input string) (*model.Lesson, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
 		return nil, Unauthorised
@@ -202,8 +237,31 @@ func (r *mutationResolver) AcceptMatch(ctx context.Context, input string) (*mode
 		return nil, Unauthorised
 	} else if utype == "t" {
 		t := u.(db.Tutor)
-		l, err := r.Ms.AcceptOnDemandMatch(t, input)
-		ml, err := r.Repo.ToLessonModel(*l)
+		l, err := r.Ms.AcceptOnDemandMatch(input, t)
+		ml, err := r.Repo.ToLessonModel(l)
+		if err != nil {
+			r.sendError(err, "Cannot accept match")
+			return nil, InternalServerError
+		}
+		return &ml, nil
+	} else {
+		return nil, Unauthorised
+	}
+}
+
+func (r *mutationResolver) AcceptScheduledMatch(ctx context.Context, input string) (*model.Lesson, error) {
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, Unauthorised
+	}
+
+	if utype == "s" {
+		r.sendError(err, "Only tutors can accept a match")
+		return nil, Unauthorised
+	} else if utype == "t" {
+		t := u.(db.Tutor)
+		l, err := r.Ms.AcceptScheduledMatch(input, t)
+		ml, err := r.Repo.ToLessonModel(l)
 		if err != nil {
 			r.sendError(err, "Cannot accept match")
 			return nil, InternalServerError
@@ -320,7 +378,45 @@ func (r *queryResolver) Lessons(ctx context.Context) ([]*model.Lesson, error) {
 	return lessons, nil
 }
 
-func (r *queryResolver) Notifications(ctx context.Context, input model.PaginatedRequest) ([]*model.Notification, error) {
+func (r *queryResolver) PendingMatches(ctx context.Context) ([]*model.Match, error) {
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, Unauthorised
+	}
+
+	var dbMatches []db.Match
+	if utype == "s" {
+		s := u.(db.Student)
+		dbMatches, err = r.Repo.GetStudentPendingMatches(s.Id)
+		if err != nil {
+			r.sendError(err, "Cannot retrieve student pending matches from database")
+			return nil, InternalServerError
+		}
+	} else if utype == "t" {
+		t := u.(db.Tutor)
+		dbMatches, err = r.Repo.GetTutorPendingMatches(t.Id)
+		if err != nil {
+			r.sendError(err, "Cannot retrieve tutor pending matches from database")
+			return nil, InternalServerError
+		}
+	} else {
+		return nil, errors.New("Unauthorised, please log in")
+	}
+
+	var modelMatches []*model.Match
+	for _, match := range dbMatches {
+		model, err := r.Repo.ToMatchModel(match)
+		if err != nil {
+			r.sendError(err, "Cannot cast dbmodel to gql model")
+			return nil, InternalServerError
+		}
+		modelMatches = append(modelMatches, &model)
+	}
+
+	return modelMatches, nil
+}
+
+func (r *queryResolver) Notifications(ctx context.Context, input model.TimeRangeRequest) ([]*model.Notification, error) {
 	u, utype, err := auth.UserFromContext(ctx)
 	if err != nil {
 		return nil, Unauthorised
@@ -345,7 +441,7 @@ func (r *queryResolver) Notifications(ctx context.Context, input model.Paginated
 		return nil, errors.New("Unauthorised, please log in")
 	}
 
-	// Convert dbLessons to gql Lesson Type
+	// Convert dbNotifications to gql Notifications Type
 	var notifications []*model.Notification
 	for _, n := range dbNotifications {
 		rn := r.Repo.ToNotificationModel(n)
@@ -357,6 +453,30 @@ func (r *queryResolver) Notifications(ctx context.Context, input model.Paginated
 	}
 
 	return notifications, nil
+}
+
+func (r *queryResolver) GetScheduledMatches(ctx context.Context, input model.ScheduledMatchParameters) ([]string, error) {
+	u, utype, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, Unauthorised
+	}
+
+	if utype == "s" {
+		s := u.(db.Student)
+		subject, err := r.Repo.GetSubject(input.Subject.Name.String(), input.Subject.Standard.String())
+		if err != nil {
+			r.sendError(err, "Cannot get subject from database")
+			return nil, InternalServerError
+		}
+
+		tids, err := r.Ms.MatchScheduled(s, subject, input.Time.StartTime, input.Time.EndTime, 20)
+		return tids, err
+	} else if utype == "t" {
+		r.sendError(err, "Only students can request for a match")
+		return nil, Unauthorised
+	} else {
+		return nil, Unauthorised
+	}
 }
 
 func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model.Lesson, error) {

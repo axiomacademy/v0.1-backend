@@ -19,14 +19,14 @@ type Heartbeat struct {
 }
 
 type Lesson struct {
-	ID       string    `json:"id"`
-	Subject  *Subject  `json:"subject"`
-	Summary  string    `json:"summary"`
-	Tutor    *Tutor    `json:"tutor"`
-	Student  *Student  `json:"student"`
-	Duration int       `json:"duration"`
-	Date     time.Time `json:"date"`
-	Chat     string    `json:"chat"`
+	ID        string    `json:"id"`
+	Subject   *Subject  `json:"subject"`
+	Summary   string    `json:"summary"`
+	Tutor     *Tutor    `json:"tutor"`
+	Student   *Student  `json:"student"`
+	Scheduled bool      `json:"scheduled"`
+	StartTime time.Time `json:"startTime"`
+	EndTime   time.Time `json:"endTime"`
 }
 
 type LoginInfo struct {
@@ -34,14 +34,21 @@ type LoginInfo struct {
 	Password string `json:"password"`
 }
 
+type Match struct {
+	ID        string     `json:"id"`
+	Status    string     `json:"status"`
+	Scheduled bool       `json:"scheduled"`
+	Tutor     *Tutor     `json:"tutor"`
+	Student   *Student   `json:"student"`
+	Subject   *Subject   `json:"subject"`
+	StartTime *time.Time `json:"startTime"`
+	EndTime   *time.Time `json:"endTime"`
+}
+
 type MatchNotification struct {
 	Student *Student `json:"student"`
 	Subject *Subject `json:"subject"`
 	Token   string   `json:"token"`
-}
-
-type MatchRequest struct {
-	Subject *NewSubject `json:"subject"`
 }
 
 type NewStudent struct {
@@ -79,9 +86,19 @@ type Notification struct {
 	Created  time.Time `json:"created"`
 }
 
-type PaginatedRequest struct {
-	StartTime time.Time `json:"startTime"`
-	EndTime   time.Time `json:"endTime"`
+type OnDemandMatchRequest struct {
+	Subject *NewSubject `json:"subject"`
+}
+
+type ScheduledMatchParameters struct {
+	Subject *NewSubject       `json:"subject"`
+	Time    *TimeRangeRequest `json:"time"`
+}
+
+type ScheduledMatchRequest struct {
+	Tutor   string            `json:"tutor"`
+	Subject *NewSubject       `json:"subject"`
+	Time    *TimeRangeRequest `json:"time"`
 }
 
 type Student struct {
@@ -98,6 +115,11 @@ func (Student) IsUser() {}
 type Subject struct {
 	Name     SubjectName     `json:"name"`
 	Standard SubjectStandard `json:"standard"`
+}
+
+type TimeRangeRequest struct {
+	StartTime time.Time `json:"startTime"`
+	EndTime   time.Time `json:"endTime"`
 }
 
 type Tutor struct {

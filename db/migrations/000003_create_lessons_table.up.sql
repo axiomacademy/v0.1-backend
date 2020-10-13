@@ -5,8 +5,7 @@ CREATE TABLE IF NOT EXISTS lessons (
   tutor VARCHAR(38) NOT NULL,
   student VARCHAR(38) NOT NULL,
   scheduled BOOLEAN NOT NULL,
-  start_time TIMESTAMPTZ NOT NULL,
-  end_time TIMESTAMPTZ NOT NULL,
+  period TSTZRANGE NOT NULL,
   PRIMARY KEY(id),
   CONSTRAINT fk_tutor
     FOREIGN KEY(tutor)

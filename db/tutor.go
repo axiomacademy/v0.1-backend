@@ -184,7 +184,7 @@ func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 }
 
 func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
-	sql := `SELECT id, subject, summary, tutor, student, duration, date, chat FROM lessons WHERE tutor = $1`
+	sql := `SELECT id, subject, summary, tutor, student, scheduled, period FROM lessons WHERE tutor = $1`
 
 	var lessons []Lesson
 
@@ -196,16 +196,18 @@ func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var lesson Lesson
-		var date pgtype.Timestamptz
+		var period pgtype.Tstzrange
 		var sid string
 
-		err := rows.Scan(&lesson.Id, &sid, &lesson.Tutor, &lesson.Student, &lesson.Duration, &date, &lesson.Chat)
+		err := rows.Scan(&lesson.Id, &sid, &lesson.Tutor, &lesson.Student, &lesson.Scheduled, &period)
 
 		if err != nil {
 			return nil, err
 		}
 
-		date.AssignTo(&lesson.Date)
+		period.Upper.AssignTo(&lesson.EndTime)
+		period.Lower.AssignTo(&lesson.StartTime)
+
 		if lesson.Subject, err = r.GetSubjectById(sid); err != nil {
 			return nil, err
 		}

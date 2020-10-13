@@ -3,45 +3,116 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgtype"
+	"github.com/pborman/uuid"
+	"github.com/solderneer/axiom-backend/graph/model"
 )
 
-type Affinity struct {
-	Tutor   string
-	Student string
-	Subject string
-	Score   int
+type Match struct {
+	Id        string
+	Status    string
+	Scheduled bool
+	Tutor     string
+	Student   string
+	Subject   string
+	StartTime time.Time
+	EndTime   time.Time
+	Lesson    string
 }
 
-func (r *Repository) CreateAffinity(tid string, sid string, subid string) (Affinity, error) {
-	var a Affinity
-	a.Tutor = tid
-	a.Student = sid
-	a.Subject = subid
-	a.Score = 0
+func (r *Repository) ToMatchModel(m Match) (model.Match, error) {
+	s, err := r.GetStudentById(m.Student)
+	if err != nil {
+		return model.Match{}, err
+	}
+
+	t, err := r.GetTutorById(m.Tutor)
+	if err != nil {
+		return model.Match{}, err
+	}
+
+	sub, err := r.GetSubjectById(m.Subject)
+	if err != nil {
+		return model.Match{}, err
+	}
+
+	rs := r.ToStudentModel(s)
+	rt := r.ToTutorModel(t)
+	rsub := r.ToSubjectModel(sub)
+
+	return model.Match{ID: m.Id, Status: m.Status, Scheduled: m.Scheduled, Tutor: &rt, Student: &rs, Subject: &rsub, StartTime: &m.StartTime, EndTime: &m.EndTime}, nil
+}
+
+// Create a new on-demand match process
+func (r *Repository) CreateOnDemandMatch(status string, sid string, subid string) (Match, error) {
+	var m Match
+	m.Id = uuid.New()
+	m.Status = status
+	m.Scheduled = false
+	m.Student = sid
+	m.Subject = subid
 
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
-		return a, err
+		return m, err
 	}
 
 	defer tx.Rollback(context.Background())
 
-	sql := `INSERT INTO affinity (tutor, student, subject, score) VALUES ($1, $2, $3, $4)`
-	_, err = tx.Exec(context.Background(), sql, a.Tutor, a.Student, a.Subject, a.Score)
+	sql := `INSERT INTO matchings (id, status, scheduled, student, subject) VALUES ($1, $2, $3, $4, $5)`
+	_, err = tx.Exec(context.Background(), sql, m.Id, m.Status, m.Scheduled, m.Student, m.Subject)
 
 	if err != nil {
-		return a, err
+		return m, err
 	}
 
 	err = tx.Commit(context.Background())
 	if err != nil {
-		return a, err
+		return m, err
 	}
 
-	return a, nil
+	return m, nil
 }
 
-func (r *Repository) DeleteAffinity(a Affinity) error {
+// Create a new scheduled match process
+func (r *Repository) CreateScheduledMatch(status string, sid string, tid string, subid string, startTime time.Time, endTime time.Time) (Match, error) {
+	var m Match
+	m.Id = uuid.New()
+	m.Status = status
+	m.Scheduled = false
+	m.Student = sid
+	m.Tutor = tid
+	m.Subject = subid
+	m.StartTime = startTime
+	m.EndTime = endTime
+
+	tx, err := r.dbPool.Begin(context.Background())
+	if err != nil {
+		return m, err
+	}
+
+	defer tx.Rollback(context.Background())
+
+	period := getTstzrange(startTime, endTime)
+
+	sql := `INSERT INTO matchings (id, status, scheduled, student, tutor, subject, period) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	_, err = tx.Exec(context.Background(), sql, m.Id, m.Status, m.Scheduled, m.Student, m.Tutor, m.Subject, period)
+
+	if err != nil {
+		return m, err
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return m, err
+	}
+
+	return m, nil
+}
+
+// Update match row, only allows update of status and lesson column
+func (r *Repository) UpdateMatch(m Match) error {
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
 		return err
@@ -49,8 +120,8 @@ func (r *Repository) DeleteAffinity(a Affinity) error {
 
 	defer tx.Rollback(context.Background())
 
-	sql := `DELETE FROM affinity WHERE tutor = $1 AND student = $2 AND subject = $3`
-	_, err = tx.Exec(context.Background(), sql, a.Tutor, a.Student, a.Subject)
+	sql := `UPDATE matchings SET status = $2, lesson $3 WHERE id = $1`
+	_, err = tx.Exec(context.Background(), sql, m.Id, m.Status, m.Lesson)
 
 	if err != nil {
 		return err
@@ -64,127 +135,87 @@ func (r *Repository) DeleteAffinity(a Affinity) error {
 	return nil
 }
 
-func (r *Repository) UpdateAffinity(a Affinity) error {
-	tx, err := r.dbPool.Begin(context.Background())
-	if err != nil {
-		return err
+func (r *Repository) GetMatchById(mid string) (Match, error) {
+	sql := `SELECT id, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE id = $1`
+	var period pgtype.Tstzrange
+	var m Match
+
+	if err := r.dbPool.QueryRow(context.Background(), sql, mid).Scan(&m.Id, &m.Status, &m.Scheduled, &m.Tutor, &m.Student, &m.Subject, &period, &m.Lesson); err != nil {
+		return m, err
 	}
 
-	defer tx.Rollback(context.Background())
+	period.Upper.AssignTo(&m.EndTime)
+	period.Lower.AssignTo(&m.StartTime)
 
-	sql := `UPDATE affinity SET score = $4 WHERE tutor = $1 AND student = $2 AND subject = $3`
-	_, err = tx.Exec(context.Background(), sql, a.Tutor, a.Student, a.Subject, a.Score)
-
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return m, nil
 }
 
-func (r *Repository) GetAffinity(tid string, sid string, subid string) (Affinity, error) {
-	var a Affinity
+func (r *Repository) GetTutorPendingMatches(tid string) ([]Match, error) {
+	sql := `SELECT id, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE tutor = $1 AND status = $2`
 
-	a.Tutor = tid
-	a.Student = sid
-	a.Subject = subid
+	var matches []Match
 
-	sql := `SELECT score FROM affinity WHERE tutor = $1, student = $2, subject = $3`
-	if err := r.dbPool.QueryRow(context.Background(), sql, a.Tutor, a.Student, a.Subject).Scan(&a.Score); err != nil {
-		return a, err
-	}
-
-	return a, nil
-}
-
-func (r *Repository) GetOnlineRandomMatches(subject Subject, count int) ([]string, error) {
-	sql := `
-	SELECT tutors.id 
-	FROM teaching
-	INNER JOIN tutors ON tutors.id = teaching.tutor
-	WHERE
-		tutors.last_seen > timestamptz '$1' AND
-		tutors.status = AVAILABLE
-	TABLESAMPLE ($2 ROWS)
-	LIMIT $3
-	`
-
-	var tids []string
-
-	exp, err := time.Now().Add(time.Minute * 1).MarshalText()
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := r.dbPool.Query(context.Background(), sql, exp, 100, count)
+	rows, err := r.dbPool.Query(context.Background(), sql, tid, "MATCHING")
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 	for rows.Next() {
-		var tid string
-		if err := rows.Scan(&tid); err != nil {
+		var m Match
+		var period pgtype.Tstzrange
+
+		err := rows.Scan(&m.Id, &m.Status, &m.Scheduled, &m.Tutor, &m.Student, &m.Subject, &period, &m.Lesson)
+
+		if err != nil {
 			return nil, err
 		}
 
-		tids = append(tids, tid)
+		period.Upper.AssignTo(&m.EndTime)
+		period.Lower.AssignTo(&m.StartTime)
+
+		matches = append(matches, m)
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return tids, nil
-}
-
-func (r *Repository) GetOnlineSchoolMatches(sid string, subject Subject, count int) ([]string, error) {
-	return nil, nil
-}
-
-func (r *Repository) GetOnlineAffinityMatches(sid string, subject Subject) ([]string, error) {
-	sql := `
-	SELECT affinity.tutor 
-	FROM affinity 
-	INNER JOIN tutors ON tutors.id = affinity.tutor 
-	WHERE 
-		affinity.student = $1 AND
-		affinity.subject = $2 AND
-		tutors.last_seen > timestamptz '$3' AND
-		tutors.status = AVAILABLE
-	ORDER_BY affinity.score DESC
-	LIMIT $4 OFFSET $5`
-
-	var tids []string
-
-	exp, err := time.Now().Add(time.Minute * 1).MarshalText()
+	err = rows.Err()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := r.dbPool.Query(context.Background(), sql, sid, subject.Id, exp, 10, 0)
+	return matches, nil
+}
+
+func (r *Repository) GetStudentPendingMatches(sid string) ([]Match, error) {
+	sql := `SELECT id, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE student = $1 AND status = $2`
+
+	var matches []Match
+
+	rows, err := r.dbPool.Query(context.Background(), sql, sid, "MATCHING")
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 	for rows.Next() {
-		var tid string
-		if err := rows.Scan(&tid); err != nil {
+		var m Match
+		var period pgtype.Tstzrange
+
+		err := rows.Scan(&m.Id, &m.Status, &m.Scheduled, &m.Tutor, &m.Student, &m.Subject, &period, &m.Lesson)
+
+		if err != nil {
 			return nil, err
 		}
 
-		tids = append(tids, tid)
+		period.Upper.AssignTo(&m.EndTime)
+		period.Lower.AssignTo(&m.StartTime)
+
+		matches = append(matches, m)
 	}
 
-	if err = rows.Err(); err != nil {
+	err = rows.Err()
+	if err != nil {
 		return nil, err
 	}
 
-	return tids, nil
+	return matches, nil
 }

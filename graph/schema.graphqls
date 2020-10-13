@@ -68,15 +68,26 @@ type Lesson {
   summary: String!
   tutor: Tutor!
   student: Student!
-  duration: Int!
-  date: Time!
-  chat: String!
+  scheduled: Boolean!
+  startTime: Time!
+  endTime: Time!
 }
 
 type MatchNotification {
   student: Student!
   subject: Subject!
   token: String!
+}
+
+type Match {
+  id: ID!
+  status: String!
+  scheduled: Boolean!
+  tutor: Tutor
+  student: Student!
+  subject: Subject!
+  startTime: Time
+  endTime: Time
 }
 
 type Notification {
@@ -131,11 +142,22 @@ input UpdateNotification {
   read: Boolean!
 }
 
-input MatchRequest {
+input OnDemandMatchRequest {
   subject: NewSubject!
 }
 
-input PaginatedRequest {
+input ScheduledMatchParameters {
+  subject: NewSubject!
+  time: TimeRangeRequest!
+}
+
+input ScheduledMatchRequest {
+  tutor: String!
+  subject: NewSubject!
+  time: TimeRangeRequest!
+}
+
+input TimeRangeRequest {
   startTime: Time!
   endTime: Time!
 }
@@ -144,10 +166,12 @@ input PaginatedRequest {
 
 type Query {
   self: User!
-  lessons: [Lesson!]!
-  notifications(input: PaginatedRequest!): [Notification!]!
+  lessons: [Lesson!]
+  pendingMatches: [Match!] 
+  notifications(input: TimeRangeRequest!): [Notification!]!
   
   # Match Service
+  getScheduledMatches(input: ScheduledMatchParameters!): [String!]!
   checkForMatch(input: String!): Lesson
 }
 
@@ -165,8 +189,10 @@ type Mutation {
   updateHeartbeat(input: HeartbeatStatus!): String!
 
   # Match Service
-  matchOnDemand(input: MatchRequest!): String!
-  acceptMatch(input: String!): Lesson!
+  matchOnDemand(input: OnDemandMatchRequest!): String!
+  requestScheduledMatch(input: ScheduledMatchRequest!): String!
+  acceptOnDemandMatch(input: String!): Lesson!
+  acceptScheduledMatch(input: String!): Lesson!
 
   # Notification Service
   updateNotification(input: UpdateNotification!): Notification!

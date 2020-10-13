@@ -45,13 +45,8 @@ func main() {
 		dbUrl = defaultDbUrl
 	}
 
-	matchQueue := os.Getenv("MATCH_DIR")
-	if matchQueue == "" {
-		log.Warn("No MATCH_DIR environment variable, defaulting to an in-memory badger store")
-	}
-
 	secret := os.Getenv("SERVER_SECRET")
-	if matchQueue == "" {
+	if secret == "" {
 		log.WithFields(log.Fields{
 			"default_secret": defaultSecret,
 		}).Warn("No SERVER_SECRET environment variable, using default")
@@ -68,8 +63,7 @@ func main() {
 	ns.Init(logger)
 
 	ms := match.MatchService{}
-	ms.Init(logger, matchQueue, secret, &ns, &repo)
-	defer ms.Close()
+	ms.Init(logger, secret, &ns, &repo)
 
 	// Binding services to resolver
 	resolver := graph.Resolver{
