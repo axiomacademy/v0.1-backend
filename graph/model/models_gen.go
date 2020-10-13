@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
 type User interface {
@@ -18,19 +19,36 @@ type Heartbeat struct {
 }
 
 type Lesson struct {
-	ID       string   `json:"id"`
-	Subject  string   `json:"subject"`
-	Summary  string   `json:"summary"`
-	Tutor    *Tutor   `json:"tutor"`
-	Student  *Student `json:"student"`
-	Duration int      `json:"duration"`
-	Date     string   `json:"date"`
-	Chat     string   `json:"chat"`
+	ID        string    `json:"id"`
+	Subject   *Subject  `json:"subject"`
+	Summary   string    `json:"summary"`
+	Tutor     *Tutor    `json:"tutor"`
+	Student   *Student  `json:"student"`
+	Scheduled bool      `json:"scheduled"`
+	StartTime time.Time `json:"startTime"`
+	EndTime   time.Time `json:"endTime"`
 }
 
 type LoginInfo struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type Match struct {
+	ID        string     `json:"id"`
+	Status    string     `json:"status"`
+	Scheduled bool       `json:"scheduled"`
+	Tutor     *Tutor     `json:"tutor"`
+	Student   *Student   `json:"student"`
+	Subject   *Subject   `json:"subject"`
+	StartTime *time.Time `json:"startTime"`
+	EndTime   *time.Time `json:"endTime"`
+}
+
+type MatchNotification struct {
+	Student *Student `json:"student"`
+	Subject *Subject `json:"subject"`
+	Token   string   `json:"token"`
 }
 
 type NewStudent struct {
@@ -42,22 +60,45 @@ type NewStudent struct {
 	ProfilePic string `json:"profilePic"`
 }
 
+type NewSubject struct {
+	Name     SubjectName     `json:"name"`
+	Standard SubjectStandard `json:"standard"`
+}
+
 type NewTutor struct {
-	Username   string   `json:"username"`
-	FirstName  string   `json:"firstName"`
-	LastName   string   `json:"lastName"`
-	Email      string   `json:"email"`
-	Password   string   `json:"password"`
-	ProfilePic string   `json:"profilePic"`
-	HourlyRate int      `json:"hourlyRate"`
-	Bio        string   `json:"bio"`
-	Education  []string `json:"education"`
-	Subjects   []string `json:"subjects"`
+	Username   string        `json:"username"`
+	FirstName  string        `json:"firstName"`
+	LastName   string        `json:"lastName"`
+	Email      string        `json:"email"`
+	Password   string        `json:"password"`
+	ProfilePic string        `json:"profilePic"`
+	HourlyRate int           `json:"hourlyRate"`
+	Bio        string        `json:"bio"`
+	Education  []string      `json:"education"`
+	Subjects   []*NewSubject `json:"subjects"`
 }
 
 type Notification struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	ID       string    `json:"id"`
+	Title    string    `json:"title"`
+	Subtitle string    `json:"subtitle"`
+	Image    string    `json:"image"`
+	Created  time.Time `json:"created"`
+}
+
+type OnDemandMatchRequest struct {
+	Subject *NewSubject `json:"subject"`
+}
+
+type ScheduledMatchParameters struct {
+	Subject *NewSubject       `json:"subject"`
+	Time    *TimeRangeRequest `json:"time"`
+}
+
+type ScheduledMatchRequest struct {
+	Tutor   string            `json:"tutor"`
+	Subject *NewSubject       `json:"subject"`
+	Time    *TimeRangeRequest `json:"time"`
 }
 
 type Student struct {
@@ -71,21 +112,36 @@ type Student struct {
 
 func (Student) IsUser() {}
 
+type Subject struct {
+	Name     SubjectName     `json:"name"`
+	Standard SubjectStandard `json:"standard"`
+}
+
+type TimeRangeRequest struct {
+	StartTime time.Time `json:"startTime"`
+	EndTime   time.Time `json:"endTime"`
+}
+
 type Tutor struct {
-	ID         string   `json:"id"`
-	Username   string   `json:"username"`
-	FirstName  string   `json:"firstName"`
-	LastName   string   `json:"lastName"`
-	Email      string   `json:"email"`
-	ProfilePic string   `json:"profilePic"`
-	HourlyRate int      `json:"hourlyRate"`
-	Bio        string   `json:"bio"`
-	Rating     int      `json:"rating"`
-	Education  []string `json:"education"`
-	Subjects   []string `json:"subjects"`
+	ID         string     `json:"id"`
+	Username   string     `json:"username"`
+	FirstName  string     `json:"firstName"`
+	LastName   string     `json:"lastName"`
+	Email      string     `json:"email"`
+	ProfilePic string     `json:"profilePic"`
+	HourlyRate int        `json:"hourlyRate"`
+	Bio        string     `json:"bio"`
+	Rating     int        `json:"rating"`
+	Education  []string   `json:"education"`
+	Subjects   []*Subject `json:"subjects"`
 }
 
 func (Tutor) IsUser() {}
+
+type UpdateNotification struct {
+	ID   string `json:"id"`
+	Read bool   `json:"read"`
+}
 
 type HeartbeatStatus string
 
@@ -125,5 +181,95 @@ func (e *HeartbeatStatus) UnmarshalGQL(v interface{}) error {
 }
 
 func (e HeartbeatStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SubjectName string
+
+const (
+	SubjectNamePhysics     SubjectName = "PHYSICS"
+	SubjectNameEconomics   SubjectName = "ECONOMICS"
+	SubjectNameMathematics SubjectName = "MATHEMATICS"
+	SubjectNameChemistry   SubjectName = "CHEMISTRY"
+	SubjectNameBiology     SubjectName = "BIOLOGY"
+)
+
+var AllSubjectName = []SubjectName{
+	SubjectNamePhysics,
+	SubjectNameEconomics,
+	SubjectNameMathematics,
+	SubjectNameChemistry,
+	SubjectNameBiology,
+}
+
+func (e SubjectName) IsValid() bool {
+	switch e {
+	case SubjectNamePhysics, SubjectNameEconomics, SubjectNameMathematics, SubjectNameChemistry, SubjectNameBiology:
+		return true
+	}
+	return false
+}
+
+func (e SubjectName) String() string {
+	return string(e)
+}
+
+func (e *SubjectName) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SubjectName(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SubjectName", str)
+	}
+	return nil
+}
+
+func (e SubjectName) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SubjectStandard string
+
+const (
+	SubjectStandardAlevels SubjectStandard = "ALEVELS"
+	SubjectStandardOlevels SubjectStandard = "OLEVELS"
+	SubjectStandardIb      SubjectStandard = "IB"
+)
+
+var AllSubjectStandard = []SubjectStandard{
+	SubjectStandardAlevels,
+	SubjectStandardOlevels,
+	SubjectStandardIb,
+}
+
+func (e SubjectStandard) IsValid() bool {
+	switch e {
+	case SubjectStandardAlevels, SubjectStandardOlevels, SubjectStandardIb:
+		return true
+	}
+	return false
+}
+
+func (e SubjectStandard) String() string {
+	return string(e)
+}
+
+func (e *SubjectStandard) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SubjectStandard(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SubjectStandard", str)
+	}
+	return nil
+}
+
+func (e SubjectStandard) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

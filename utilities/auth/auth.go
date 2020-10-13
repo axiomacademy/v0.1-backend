@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -20,7 +19,6 @@ func GenerateToken(id string, secret string) (string, error) {
 	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
 	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
-		log.Fatal("Error in generating key")
 		return "", err
 	}
 	return tokenString, nil

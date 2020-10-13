@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 
+	"github.com/jackc/pgtype"
 	"github.com/pborman/uuid"
 	"github.com/solderneer/axiom-backend/graph/model"
 )
@@ -15,6 +16,7 @@ type Student struct {
 	Email          string
 	HashedPassword string
 	ProfilePic     string
+	PushToken      string
 }
 
 func (r *Repository) ToStudentModel(s Student) model.Student {
@@ -34,7 +36,7 @@ func (r *Repository) CreateStudent(username string, firstName string, lastName s
 	s.HashedPassword = hashedPassword
 	s.ProfilePic = profile_pic
 
-	tx, err := r.DbPool.Begin(context.Background())
+	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
 		return s, err
 	}
@@ -57,15 +59,15 @@ func (r *Repository) CreateStudent(username string, firstName string, lastName s
 }
 
 func (r *Repository) UpdateStudent(s Student) error {
-	tx, err := r.DbPool.Begin(context.Background())
+	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
 		return err
 	}
 
 	defer tx.Rollback(context.Background())
 
-	sql := `UPDATE students SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6) WHERE id = $1`
-	_, err = tx.Exec(context.Background(), sql, s.Id, s.FirstName, s.LastName, s.Email, s.HashedPassword, s.ProfilePic)
+	sql := `UPDATE students SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, push_token = $7 WHERE id = $1`
+	_, err = tx.Exec(context.Background(), sql, s.Id, s.FirstName, s.LastName, s.Email, s.HashedPassword, s.ProfilePic, s.PushToken)
 
 	if err != nil {
 		return err
@@ -83,9 +85,9 @@ func (r *Repository) GetStudentById(id string) (Student, error) {
 
 	var s Student
 
-	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic FROM students WHERE id = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, push_token FROM students WHERE id = $1`
 
-	if err := r.DbPool.QueryRow(context.Background(), sql, id).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, id).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic, &s.PushToken); err != nil {
 		return s, err
 	}
 
@@ -96,9 +98,9 @@ func (r *Repository) GetStudentByUsername(username string) (Student, error) {
 
 	var s Student
 
-	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic FROM students WHERE username = $1`
+	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, push_token FROM students WHERE username = $1`
 
-	if err := r.DbPool.QueryRow(context.Background(), sql, username).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, username).Scan(&s.Id, &s.Username, &s.FirstName, &s.LastName, &s.Email, &s.HashedPassword, &s.ProfilePic, &s.PushToken); err != nil {
 		return s, err
 	}
 
@@ -106,11 +108,11 @@ func (r *Repository) GetStudentByUsername(username string) (Student, error) {
 }
 
 func (r *Repository) GetStudentLessons(sid string) ([]Lesson, error) {
-	sql := `SELECT id, subject, tutor, student, duration, date, chat FROM lessons WHERE student = $1`
+	sql := `SELECT id, subject, tutor, student, scheduled, period FROM lessons WHERE student = $1`
 
 	var lessons []Lesson
 
-	rows, err := r.DbPool.Query(context.Background(), sql, sid)
+	rows, err := r.dbPool.Query(context.Background(), sql, sid)
 	if err != nil {
 		return nil, err
 	}
@@ -118,9 +120,19 @@ func (r *Repository) GetStudentLessons(sid string) ([]Lesson, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var lesson Lesson
-		err := rows.Scan(&lesson.Id, &lesson.Subject, &lesson.Tutor, &lesson.Student, &lesson.Duration, &lesson.Date, &lesson.Chat)
+		var period pgtype.Tstzrange
+		var sid string
+
+		err := rows.Scan(&lesson.Id, &sid, &lesson.Tutor, &lesson.Student, &lesson.Scheduled, &period)
 
 		if err != nil {
+			return nil, err
+		}
+
+		period.Upper.AssignTo(&lesson.EndTime)
+		period.Lower.AssignTo(&lesson.EndTime)
+
+		if lesson.Subject, err = r.GetSubjectById(sid); err != nil {
 			return nil, err
 		}
 
