@@ -1,12 +1,9 @@
-CREATE TABLE IF NOT EXISTS lessons (
-  id VARCHAR(38) NOT NULL UNIQUE,
-  subject VARCHAR(38) NOT NULL,
-  summary TEXT,
+CREATE TABLE IF NOT EXISTS affinity (
   tutor VARCHAR(38) NOT NULL,
   student VARCHAR(38) NOT NULL,
-  scheduled BOOLEAN NOT NULL,
-  period TSTZRANGE NOT NULL,
-  PRIMARY KEY(id),
+  subject VARCHAR(38) NOT NULL,
+  score INT NOT NULL DEFAULT 0,
+  PRIMARY KEY(tutor, student, subject),
   CONSTRAINT fk_tutor
     FOREIGN KEY(tutor)
       REFERENCES tutors(id),
@@ -16,4 +13,4 @@ CREATE TABLE IF NOT EXISTS lessons (
   CONSTRAINT fk_subject
     FOREIGN KEY(subject)
       REFERENCES subjects(id)
-); 
+);
