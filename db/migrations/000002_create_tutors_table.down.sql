@@ -1,2 +1,4 @@
+DROP TABLE IF EXISTS timeblocks;
+DROP TABLE IF EXISTS teaching;
 DROP TABLE IF EXISTS tutors;
-DROP TYPE subject;
+DROP TABLE IF EXISTS subject;

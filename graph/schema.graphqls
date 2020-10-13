@@ -11,12 +11,30 @@ interface User {
   profilePic: String!
 }
 
-scalar Date
-scalar DateTime
+scalar Time
 
 enum HeartbeatStatus {
   AVAILABLE
   UNAVAILABLE
+}
+
+enum SubjectName {
+  PHYSICS
+  ECONOMICS
+  MATHEMATICS
+  CHEMISTRY
+  BIOLOGY
+}
+
+enum SubjectStandard {
+  ALEVELS
+  OLEVELS
+  IB
+}
+
+type Subject {
+  name: SubjectName!
+  standard: SubjectStandard!
 }
 
 ############################## TYPES #####################################################
@@ -41,23 +59,43 @@ type Tutor implements User {
   bio: String!
   rating: Int!
   education: [String!]!
-  subjects: [String!]!
+  subjects: [Subject!]!
 }
 
 type Lesson {
   id: ID!
-  subject: String!
+  subject: Subject!
   summary: String!
   tutor: Tutor!
   student: Student!
-  duration: Int!
-  date: Date!
-  chat: String!
+  scheduled: Boolean!
+  startTime: Time!
+  endTime: Time!
+}
+
+type MatchNotification {
+  student: Student!
+  subject: Subject!
+  token: String!
+}
+
+type Match {
+  id: ID!
+  status: String!
+  scheduled: Boolean!
+  tutor: Tutor
+  student: Student!
+  subject: Subject!
+  startTime: Time
+  endTime: Time
 }
 
 type Notification {
+  id: ID!
   title: String!
-  description: String!
+  subtitle: String!
+  image: String!
+  created: Time!
 }
 
 type Heartbeat {
@@ -68,11 +106,16 @@ type Heartbeat {
 type Message {
   to: String!
   from: String!
-  timestamp: DateTime!
+  timestamp: Time!
   message: String!
 }
 
 #################################### INPUTS ################################################
+
+input NewSubject {
+  name: SubjectName!
+  standard: SubjectStandard!
+}
 
 input NewStudent {
   username: String!
@@ -93,7 +136,7 @@ input NewTutor {
   hourlyRate: Int!
   bio: String!
   education: [String!]!
-  subjects: [String!]!
+  subjects: [NewSubject!]!
 }
 
 input LoginInfo {
@@ -108,8 +151,33 @@ input SendMessage {
 
 input MessageRange {
   to: String!
-  start: DateTime
-  end: DateTime
+  start: Time
+  end: Time
+}
+
+input UpdateNotification {
+  id: String!
+  read: Boolean!
+}
+
+input OnDemandMatchRequest {
+  subject: NewSubject!
+}
+
+input ScheduledMatchParameters {
+  subject: NewSubject!
+  time: TimeRangeRequest!
+}
+
+input ScheduledMatchRequest {
+  tutor: String!
+  subject: NewSubject!
+  time: TimeRangeRequest!
+}
+
+input TimeRangeRequest {
+  startTime: Time!
+  endTime: Time!
 }
 
 ############################### QUERIES ####################################################
@@ -117,8 +185,13 @@ input MessageRange {
 type Query {
   self: User!,
   lessons: [Lesson!]!
-
   messages(input: MessageRange!): [Message!]!
+  pendingMatches: [Match!] 
+  notifications(input: TimeRangeRequest!): [Notification!]!
+  
+  # Match Service
+  getScheduledMatches(input: ScheduledMatchParameters!): [String!]!
+  checkForMatch(input: String!): Lesson
 }
 
 ############################### MUTATIONS ####################################################
@@ -131,13 +204,24 @@ type Mutation {
   loginTutor(input: LoginInfo!): String!
   refreshToken: String!
 
+  # Heartbeat Service
   updateHeartbeat(input: HeartbeatStatus!): String!
 
   sendMessage(input: SendMessage!): String!
+  
+  # Match Service
+  matchOnDemand(input: OnDemandMatchRequest!): String!
+  requestScheduledMatch(input: ScheduledMatchRequest!): String!
+  acceptOnDemandMatch(input: String!): Lesson!
+  acceptScheduledMatch(input: String!): Lesson!
+
+  # Notification Service
+  updateNotification(input: UpdateNotification!): Notification!
+  registerPushNotification(input: String!): String!
 }
 
-############################### MUTATIONS ####################################################
+############################### SUBSCRIPTIONS ####################################################
 type Subscription {
-  subscribeNotifications(user: String!): Notification!
   subscribeMessages: Message!
+  subscribeMatchNotifications(user: String!): MatchNotification!
 }
