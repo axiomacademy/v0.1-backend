@@ -1,3 +1,4 @@
+// Package db implements the Repository structure to provide access to all database functionality
 package db
 
 import (
@@ -17,6 +18,7 @@ type Repository struct {
 	logger *log.Logger
 }
 
+// Initialises the Repository, needs to be called before everything else
 func (r *Repository) Init(logger *log.Logger, dbUrl string) {
 	// Setup logger
 	r.logger = logger
@@ -39,6 +41,7 @@ func (r *Repository) Close() {
 }
 
 // TODO: Reuse the DBPool after typecasting pgxpool.Poor into *sql.DB using the pgx/stdlib library
+// Migrates the database to the latest state after applying all migrations
 func (r *Repository) Migrate(dbUrl string) {
 	m, err := migrate.New("file://db/migrations", dbUrl)
 	if err != nil {

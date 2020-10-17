@@ -57,6 +57,7 @@ func (r *Repository) GetSubject(name string, standard string) (Subject, error) {
 	return s, nil
 }
 
+// An utility function to make converting the graphql resovler type easier
 func (r *Repository) GetSubjects(subjects []*model.NewSubject) ([]Subject, error) {
 	var dbSubjects []Subject
 	for _, s := range subjects {
@@ -71,18 +72,20 @@ func (r *Repository) GetSubjects(subjects []*model.NewSubject) ([]Subject, error
 	return dbSubjects, nil
 }
 
-func (r *Repository) GetSubjectById(sid string) (Subject, error) {
+// Get subject by subject UUID
+func (r *Repository) GetSubjectById(subid string) (Subject, error) {
 	sql := `SELECT id, name, standard FROM subjects WHERE id = $1`
 
 	var subject Subject
 
-	if err := r.dbPool.QueryRow(context.Background(), sql, sid).Scan(&subject.Id, &subject.Name, &subject.Standard); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, subid).Scan(&subject.Id, &subject.Name, &subject.Standard); err != nil {
 		return subject, err
 	}
 
 	return subject, nil
 }
 
+// Get all the subjects associated with a tutor based on tutor UUID
 func (r *Repository) GetTutorSubjects(tid string) ([]Subject, error) {
 	sql := `SELECT subjects.id, subjects.name, subjects.standard FROM subjects INNER JOIN teaching ON subjects.id = teaching.subject WHERE teaching.tutor = $1`
 
@@ -110,7 +113,8 @@ func (r *Repository) GetTutorSubjects(tid string) ([]Subject, error) {
 	return dbSubjects, nil
 }
 
-func (r *Repository) AddSubjectsToTutor(tid string, subjects []Subject) error {
+// Add a fresh set of subjects to the tutor
+func (r *Repository) AddSubjectsToTutor(tid string, subids []string) error {
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
 		return err
@@ -119,8 +123,8 @@ func (r *Repository) AddSubjectsToTutor(tid string, subjects []Subject) error {
 	defer tx.Rollback(context.Background())
 
 	sql := `INSERT INTO teaching (tutor, subject) VALUES ($1, $2)`
-	for _, s := range subjects {
-		_, err = tx.Exec(context.Background(), sql, tid, s.Id)
+	for _, s := range subids {
+		_, err = tx.Exec(context.Background(), sql, tid, s)
 		if err != nil {
 			return err
 		}
@@ -133,6 +137,7 @@ func (r *Repository) AddSubjectsToTutor(tid string, subjects []Subject) error {
 	return nil
 }
 
+// Delete all subjects from the tutor, should do this before you add a fresh set of subjects
 func (r *Repository) RemoveSubjectsFromTutor(tid string) error {
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
