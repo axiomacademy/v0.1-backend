@@ -21,10 +21,13 @@ type Notification struct {
 	Created  time.Time
 }
 
+// Convert a db.Notification to a model.Notification
 func (r *Repository) ToNotificationModel(n Notification) model.Notification {
 	return model.Notification{ID: n.Id, Title: n.Title, Subtitle: n.Subtitle, Image: n.Image, Created: n.Created}
 }
 
+// Create a new notification and commits it to the database
+// Takes the user's ID (either Tutor, Student), title, subtitle and image
 func (r *Repository) CreateNotification(uid string, title string, subtitle string, image string) (Notification, error) {
 	var n Notification
 
@@ -65,6 +68,7 @@ func (r *Repository) CreateNotification(uid string, title string, subtitle strin
 	return n, nil
 }
 
+// Update notification based on an existing notification struct, only can update read status
 func (r *Repository) UpdateNotification(n Notification) error {
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
@@ -87,6 +91,7 @@ func (r *Repository) UpdateNotification(n Notification) error {
 	return nil
 }
 
+// Get notification by notification UUID
 func (r *Repository) GetNotificationById(nid string) (Notification, error) {
 	sql := `SELECT id, tutor, student, title, subtitle, image, read, created FROM notifications WHERE id = $1`
 
@@ -101,6 +106,7 @@ func (r *Repository) GetNotificationById(nid string) (Notification, error) {
 	return n, nil
 }
 
+// Get all the notifications associated with a user. Paginated by time period
 func (r *Repository) GetUserNotifications(uid string, startTime time.Time, endTime time.Time) ([]Notification, error) {
 	var sql string
 

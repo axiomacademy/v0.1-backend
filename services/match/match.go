@@ -1,3 +1,4 @@
+// Package match contains all the matching logic, including sorting affinity and fetching random tutors
 package match
 
 import (
@@ -20,6 +21,7 @@ type MatchService struct {
 	repo   *db.Repository
 }
 
+// Inititialise the matching service
 func (ms *MatchService) Init(logger *log.Logger, secret string, ns *notifs.NotifService, repo *db.Repository) {
 	ms.logger = logger
 	ms.secret = secret
@@ -29,7 +31,7 @@ func (ms *MatchService) Init(logger *log.Logger, secret string, ns *notifs.Notif
 	ms.logger.WithField("service", "match").Info("Successfully initialised")
 }
 
-// Retrieves top scheduled matchs based on availability
+// Retrieves top scheduled matches based on availability
 // Takes in a student, subject, start and end times, plus a limit integer of how many matches to return
 func (ms *MatchService) MatchScheduled(s db.Student, subject db.Subject, startTime time.Time, endTime time.Time, limit int) ([]string, error) {
 	affinitytids, err := ms.repo.GetAvailableTutors(s.Id, subject.Id, startTime, endTime)
@@ -89,6 +91,7 @@ func (ms *MatchService) MatchScheduled(s db.Student, subject db.Subject, startTi
 	return availabletids, nil
 }
 
+// Requests a scheduled match from a specific tutor, typically after a tutor lits is retrieved using MatchScheduled
 func (ms *MatchService) RequestScheduledMatch(s db.Student, t db.Tutor, subject db.Subject, startTime time.Time, endTime time.Time) (db.Match, error) {
 	// Create the match
 	m, err := ms.repo.CreateScheduledMatch("MATCHING", s.Id, t.Id, subject.Id, startTime, endTime)
@@ -139,6 +142,7 @@ func (ms *MatchService) RequestScheduledMatch(s db.Student, t db.Tutor, subject 
 	return m, nil
 }
 
+// Lets a tutor accept a scheduled match request
 func (ms *MatchService) AcceptScheduledMatch(mid string, t db.Tutor) (db.Lesson, error) {
 	var l db.Lesson
 
@@ -211,7 +215,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject, limit in
 	}
 
 	go func() {
-		tids, err := ms.repo.GetOnlineAffinityMatches(s.Id, subject)
+		tids, err := ms.repo.GetOnlineAffinityMatches(s.Id, subject.Id, limit)
 		if err != nil {
 			m.Status = "FAILED"
 			ms.sendError(err, "Error retrieving database matches")
@@ -222,7 +226,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject, limit in
 		}
 
 		if len(tids) < limit {
-			rtids, err := ms.repo.GetOnlineRandomMatches(subject, limit-len(tids))
+			rtids, err := ms.repo.GetOnlineRandomMatches(subject.Id, limit-len(tids))
 			if err != nil {
 				m.Status = "FAILED"
 				ms.sendError(err, "Error retrieving database matches")
@@ -290,6 +294,7 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject, limit in
 	return m.Id, err
 }
 
+// Lets a tutor accept an on-demand match
 func (ms *MatchService) AcceptOnDemandMatch(token string, t db.Tutor) (db.Lesson, error) {
 	var l db.Lesson
 	mid, err := ms.parseMatchToken(token)

@@ -1,3 +1,4 @@
+// Package utilities/auth contains all revlevant auth utilities used throughout the project
 package auth
 
 import (
@@ -50,11 +51,11 @@ func CheckPasswordHash(password, hash string) bool {
 }
 
 // Reads a context and returns the appropriate type
-func UserFromContext(ctx context.Context) (interface{}, string, error) {
+func UserFromContext(ctx context.Context) (interface{}, error) {
 	raw, ok := ctx.Value("user").(map[string]interface{})
 	if !ok {
-		return nil, "", errors.New("Unauthorised, please log in")
+		return nil, errors.New("Unauthorised, please log in")
 	}
 
-	return raw["user"], raw["type"].(string), nil
+	return raw["user"], nil
 }

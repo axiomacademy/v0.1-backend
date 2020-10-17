@@ -12,6 +12,7 @@ type Affinity struct {
 	Score   int
 }
 
+// Creates a new affinity, takes in the tutor UUID, student UUID and subject UUID
 func (r *Repository) CreateAffinity(tid string, sid string, subid string) (Affinity, error) {
 	var a Affinity
 	a.Tutor = tid
@@ -41,6 +42,7 @@ func (r *Repository) CreateAffinity(tid string, sid string, subid string) (Affin
 	return a, nil
 }
 
+// Deletes an existing affinity, takes in an existing affinity UUID
 func (r *Repository) DeleteAffinity(a Affinity) error {
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
@@ -64,6 +66,7 @@ func (r *Repository) DeleteAffinity(a Affinity) error {
 	return nil
 }
 
+// Updates an existing affinity, takes in an existing retrieved affinity
 func (r *Repository) UpdateAffinity(a Affinity) error {
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
@@ -87,6 +90,7 @@ func (r *Repository) UpdateAffinity(a Affinity) error {
 	return nil
 }
 
+// Get the affinity given the tutor UUID, string UUID and subject UUID
 func (r *Repository) GetAffinity(tid string, sid string, subid string) (Affinity, error) {
 	var a Affinity
 
@@ -102,16 +106,18 @@ func (r *Repository) GetAffinity(tid string, sid string, subid string) (Affinity
 	return a, nil
 }
 
-func (r *Repository) GetOnlineRandomMatches(subject Subject, count int) ([]string, error) {
+// Get random on-demand matches given a subject based on online status. Limited by count
+func (r *Repository) GetOnlineRandomMatches(subid string, count int) ([]string, error) {
 	sql := `
 	SELECT tutors.id 
 	FROM teaching
 	INNER JOIN tutors ON tutors.id = teaching.tutor
 	WHERE
-		tutors.last_seen > timestamptz '$1' AND
-		tutors.status = AVAILABLE
-	TABLESAMPLE ($2 ROWS)
-	LIMIT $3
+		tutors.last_seen > $1 AND
+		tutors.status = AVAILABLE AND
+		teaching.subject = $2
+	TABLESAMPLE ($3 ROWS)
+	LIMIT $4
 	`
 
 	var tids []string
@@ -121,7 +127,7 @@ func (r *Repository) GetOnlineRandomMatches(subject Subject, count int) ([]strin
 		return nil, err
 	}
 
-	rows, err := r.dbPool.Query(context.Background(), sql, exp, 100, count)
+	rows, err := r.dbPool.Query(context.Background(), sql, exp, subid, count*100, count)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +149,8 @@ func (r *Repository) GetOnlineRandomMatches(subject Subject, count int) ([]strin
 	return tids, nil
 }
 
-func (r *Repository) GetOnlineAffinityMatches(sid string, subject Subject) ([]string, error) {
+// Get online on-demand matches, based and sorted by affinity. Limited by the count parameter
+func (r *Repository) GetOnlineAffinityMatches(sid string, subid string, count int) ([]string, error) {
 	sql := `
 	SELECT affinity.tutor 
 	FROM affinity 
@@ -154,7 +161,7 @@ func (r *Repository) GetOnlineAffinityMatches(sid string, subject Subject) ([]st
 		tutors.last_seen > timestamptz '$3' AND
 		tutors.status = AVAILABLE
 	ORDER_BY affinity.score DESC
-	LIMIT $4 OFFSET $5`
+	LIMIT $4`
 
 	var tids []string
 
@@ -163,7 +170,7 @@ func (r *Repository) GetOnlineAffinityMatches(sid string, subject Subject) ([]st
 		return nil, err
 	}
 
-	rows, err := r.dbPool.Query(context.Background(), sql, sid, subject.Id, exp, 10, 0)
+	rows, err := r.dbPool.Query(context.Background(), sql, sid, subid, exp, count)
 	if err != nil {
 		return nil, err
 	}

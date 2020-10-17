@@ -21,6 +21,7 @@ type Match struct {
 	Lesson    string
 }
 
+// Converts a db.Match to model.Match
 func (r *Repository) ToMatchModel(m Match) (model.Match, error) {
 	s, err := r.GetStudentById(m.Student)
 	if err != nil {
@@ -38,13 +39,16 @@ func (r *Repository) ToMatchModel(m Match) (model.Match, error) {
 	}
 
 	rs := r.ToStudentModel(s)
-	rt := r.ToTutorModel(t)
+	rt, err := r.ToTutorModel(t)
+	if err != nil {
+		return model.Match{}, err
+	}
 	rsub := r.ToSubjectModel(sub)
 
 	return model.Match{ID: m.Id, Status: m.Status, Scheduled: m.Scheduled, Tutor: &rt, Student: &rs, Subject: &rsub, StartTime: &m.StartTime, EndTime: &m.EndTime}, nil
 }
 
-// Create a new on-demand match process
+// Create a new on-demand match. Takes in the status string, student UUID string, subject UUID string
 func (r *Repository) CreateOnDemandMatch(status string, sid string, subid string) (Match, error) {
 	var m Match
 	m.Id = uuid.New()
@@ -76,6 +80,7 @@ func (r *Repository) CreateOnDemandMatch(status string, sid string, subid string
 }
 
 // Create a new scheduled match process
+// Takes a status string, student UUID string, tutor UUID string, subject UUID string, startTime and endTime in absolute time.Time
 func (r *Repository) CreateScheduledMatch(status string, sid string, tid string, subid string, startTime time.Time, endTime time.Time) (Match, error) {
 	var m Match
 	m.Id = uuid.New()
@@ -111,7 +116,8 @@ func (r *Repository) CreateScheduledMatch(status string, sid string, tid string,
 	return m, nil
 }
 
-// Update match row, only allows update of status and lesson column
+// Updates match row, only allows update of status and lesson column
+// Takes in the updated match struct and then updates database state to match
 func (r *Repository) UpdateMatch(m Match) error {
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
@@ -135,6 +141,7 @@ func (r *Repository) UpdateMatch(m Match) error {
 	return nil
 }
 
+// Gets the match struct based on the match UUID
 func (r *Repository) GetMatchById(mid string) (Match, error) {
 	sql := `SELECT id, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE id = $1`
 	var period pgtype.Tstzrange
@@ -185,6 +192,7 @@ func (r *Repository) GetTutorPendingMatches(tid string) ([]Match, error) {
 	return matches, nil
 }
 
+// Gets all the pending matches for a student, takes in a student UUID
 func (r *Repository) GetStudentPendingMatches(sid string) ([]Match, error) {
 	sql := `SELECT id, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE student = $1 AND status = $2`
 
