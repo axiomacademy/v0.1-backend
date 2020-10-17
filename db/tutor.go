@@ -153,7 +153,14 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 	}
 
 	lastSeen.AssignTo(&t.LastSeen)
-	t.Subjects = subjects
+
+	var subids []string
+
+	for _, subject := range subjects {
+		subids = append(subids, subject.Id)
+	}
+
+	t.Subjects = subids
 
 	return t, nil
 }

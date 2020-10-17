@@ -39,7 +39,10 @@ func (r *Repository) ToMatchModel(m Match) (model.Match, error) {
 	}
 
 	rs := r.ToStudentModel(s)
-	rt := r.ToTutorModel(t)
+	rt, err := r.ToTutorModel(t)
+	if err != nil {
+		return model.Match{}, err
+	}
 	rsub := r.ToSubjectModel(sub)
 
 	return model.Match{ID: m.Id, Status: m.Status, Scheduled: m.Scheduled, Tutor: &rt, Student: &rs, Subject: &rsub, StartTime: &m.StartTime, EndTime: &m.EndTime}, nil

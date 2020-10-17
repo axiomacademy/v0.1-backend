@@ -166,12 +166,12 @@ input TimeRangeRequest {
 
 type Query {
   self: User!
-  lessons: [Lesson!]
+  lessons(input: TimeRangeRequest!): [Lesson!]
   pendingMatches: [Match!] 
-  notifications(input: TimeRangeRequest!): [Notification!]!
+  notifications(input: TimeRangeRequest!): [Notification!]
   
   # Match Service
-  getScheduledMatches(input: ScheduledMatchParameters!): [String!]!
+  getScheduledMatches(input: ScheduledMatchParameters!): [Tutor!]!
   checkForMatch(input: String!): Lesson
 }
 
@@ -189,7 +189,7 @@ type Mutation {
   updateHeartbeat(input: HeartbeatStatus!): String!
 
   # Match Service
-  matchOnDemand(input: OnDemandMatchRequest!): String!
+  requestOnDemandMatch(input: OnDemandMatchRequest!): String!
   requestScheduledMatch(input: ScheduledMatchRequest!): String!
   acceptOnDemandMatch(input: String!): Lesson!
   acceptScheduledMatch(input: String!): Lesson!
@@ -201,5 +201,5 @@ type Mutation {
 
 ############################### SUBSCRIPTIONS ####################################################
 type Subscription {
-  subscribeMatchNotifications(user: String!): MatchNotification!
+  subscribeMatchNotifications: MatchNotification!
 }
