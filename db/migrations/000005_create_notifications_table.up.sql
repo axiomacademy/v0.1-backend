@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 CREATE TABLE IF NOT EXISTS matchings (
-  id VARCHAR(38),
+  id VARCHAR(38) NOT NULL,
+  token VARCHAR(38),
   status TEXT NOT NULL,
   scheduled BOOLEAN NOT NULL,
   tutor VARCHAR(38),

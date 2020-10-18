@@ -507,7 +507,14 @@ func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model
 
 	switch user := u.(type) {
 	case db.Student:
-		l, err := r.Ms.GetOnDemandMatch(user, input)
+		l, err := r.Ms.CheckForMatch(user, input)
+		if err == errors.New("No match found") {
+			return nil, err
+		} else if err != nil {
+			r.sendError(err, "Error retrieving matct")
+			return nil, InternalServerError
+		}
+
 		ml, err := r.Repo.ToLessonModel(*l)
 
 		if err != nil {

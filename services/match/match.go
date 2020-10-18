@@ -5,7 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/jackc/pgx/v4"
+	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/solderneer/axiom-backend/db"
@@ -94,7 +95,7 @@ func (ms *MatchService) MatchScheduled(s db.Student, subject db.Subject, startTi
 // Requests a scheduled match from a specific tutor, typically after a tutor lits is retrieved using MatchScheduled
 func (ms *MatchService) RequestScheduledMatch(s db.Student, t db.Tutor, subject db.Subject, startTime time.Time, endTime time.Time) (db.Match, error) {
 	// Create the match
-	m, err := ms.repo.CreateScheduledMatch("MATCHING", s.Id, t.Id, subject.Id, startTime, endTime)
+	m, err := ms.repo.CreateMatch("SCHEDULED", "MATCHING", false, s.Id, t.Id, subject.Id, startTime, endTime)
 	if err != nil {
 		ms.sendError(err, "Cannot create match in database")
 		return m, err
@@ -206,58 +207,44 @@ func (ms *MatchService) AcceptScheduledMatch(mid string, t db.Tutor) (db.Lesson,
 // Collects top students, ordered by affinity, send match notifications to each of them (timeout 20 seconds), once a match is found set match Id to a created lesson
 // Retrieves all the top  matches for on demand. Limit integer defines how many matches to generate
 func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject, limit int) (string, error) {
-	// Generate match id
-	m, err := ms.repo.CreateOnDemandMatch("MATCHING", s.Id, subject.Id)
-
-	if err != nil {
-		ms.sendError(err, "Cannot create match in database")
-		return "", err
-	}
+	// Generate match token
+	token := uuid.New()
 
 	go func() {
 		tids, err := ms.repo.GetOnlineAffinityMatches(s.Id, subject.Id, limit)
 		if err != nil {
-			m.Status = "FAILED"
 			ms.sendError(err, "Error retrieving database matches")
-
-			err := ms.repo.UpdateMatch(m)
-			ms.sendError(err, "Updating match to failed")
 			return
 		}
 
 		if len(tids) < limit {
 			rtids, err := ms.repo.GetOnlineRandomMatches(subject.Id, limit-len(tids))
 			if err != nil {
-				m.Status = "FAILED"
 				ms.sendError(err, "Error retrieving database matches")
-
-				err := ms.repo.UpdateMatch(m)
-				ms.sendError(err, "Updating match to failed")
 				return
 			}
 			tids = append(tids, rtids...)
 		}
 
 		mstudent := ms.repo.ToStudentModel(s)
-		token, err := ms.generateMatchToken(m.Id)
-
-		// Error generating token
-		if err != nil {
-			m.Status = "FAILED"
-			ms.sendError(err, "Error generating match token")
-
-			err := ms.repo.UpdateMatch(m)
-			ms.sendError(err, "Updating match to failed")
-			return
-		}
-
 		msubject := ms.repo.ToSubjectModel(subject)
 
 		for _, tid := range tids {
+			// Creating the match
+			m, err := ms.repo.CreateMatch(token, "MATCHING", false, s.Id, tid, subject.Id, time.Now(), time.Now().Add(time.Second*30))
+			if err != nil {
+				m.Status = "FAILED"
+				ms.sendError(err, "Error retrieving database match")
+
+				err := ms.repo.UpdateMatch(m)
+				ms.sendError(err, "Updating match to failed")
+				return
+			}
+
 			n := model.MatchNotification{
 				Student: &mstudent,
 				Subject: &msubject,
-				Token:   token,
+				Token:   m.Id,
 			}
 
 			ms.ns.SendMatchNotification(n, tid)
@@ -278,36 +265,37 @@ func (ms *MatchService) MatchOnDemand(s db.Student, subject db.Subject, limit in
 				// Stop looping
 				return
 			}
+			// No matches found at the moment
+			m.Status = "FAILED"
+			err = ms.repo.UpdateMatch(m)
+			if err != nil {
+				ms.sendError(err, "Cannot update database match")
+				return
+			}
 		}
-
-		// No matches found at the moment
-		m.Status = "FAILED"
-		err = ms.repo.UpdateMatch(m)
-		if err != nil {
-			ms.sendError(err, "Cannot update database match")
-			return
-		}
-
-		return
 	}()
 
-	return m.Id, err
+	return token, nil
 }
 
 // Lets a tutor accept an on-demand match
-func (ms *MatchService) AcceptOnDemandMatch(token string, t db.Tutor) (db.Lesson, error) {
+func (ms *MatchService) AcceptOnDemandMatch(id string, t db.Tutor) (db.Lesson, error) {
 	var l db.Lesson
-	mid, err := ms.parseMatchToken(token)
-	if err != nil {
-		ms.sendError(err, "Unable to parse match token")
-		return l, err
-	}
 
 	// Fetching the match
-	m, err := ms.repo.GetMatchById(mid)
+	m, err := ms.repo.GetMatchById(id)
 	if err != nil {
 		ms.sendError(err, "Unable to retrieve match")
 		return l, err
+	}
+
+	// Check that the tutor IDs match
+	if m.Tutor != t.Id {
+		return l, errors.New("Unauthorised tutor accessing match")
+	}
+
+	if m.Status != "MATCHING" {
+		return l, errors.New("Expired match")
 	}
 
 	// Fetch the match subject
@@ -335,11 +323,14 @@ func (ms *MatchService) AcceptOnDemandMatch(token string, t db.Tutor) (db.Lesson
 	return l, nil
 }
 
-func (ms *MatchService) GetOnDemandMatch(s db.Student, mid string) (*db.Lesson, error) {
+func (ms *MatchService) CheckForMatch(s db.Student, token string) (*db.Lesson, error) {
 
 	// Fetching the match
-	m, err := ms.repo.GetMatchById(mid)
-	if err != nil {
+	m, err := ms.repo.CheckForMatch(token)
+	if err == pgx.ErrNoRows {
+		// There are no matches yet
+		return nil, errors.New("No match found")
+	} else if err != nil {
 		ms.sendError(err, "Unable to retrieve match")
 		return nil, err
 	}
@@ -350,49 +341,12 @@ func (ms *MatchService) GetOnDemandMatch(s db.Student, mid string) (*db.Lesson, 
 		return nil, errors.New("Unauthorised to access match")
 	}
 
-	switch m.Status {
-	case "MATCHING":
-		return nil, errors.New("Still matching")
-	case "FAILED":
-		return nil, errors.New("Matching failed")
-	case "MATCHED":
-		l, err := ms.repo.GetLessonById(m.Lesson)
-		if err != nil {
-			ms.sendError(err, "Unable to retrieve lesson from database")
-			return nil, err
-		}
-		return &l, nil
-	}
-
-	return nil, err
-}
-
-// GenerateToken generates a jwt token and assign a ,id to it's claims and return it
-func (ms *MatchService) generateMatchToken(id string) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-	/* Create a map to store our claims */
-	claims := token.Claims.(jwt.MapClaims)
-	/* Set token claims */
-	claims["id"] = id
-	claims["exp"] = time.Now().Add(time.Second * 30).Unix()
-	tokenString, err := token.SignedString([]byte(ms.secret))
+	l, err := ms.repo.GetLessonById(m.Lesson)
 	if err != nil {
-		return "", err
+		ms.sendError(err, "Unable to retrieve lesson from database")
+		return nil, err
 	}
-	return tokenString, nil
-}
-
-//ParseToken parses a jwt token and returns the mid it it's claims
-func (ms *MatchService) parseMatchToken(tokenStr string) (string, error) {
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		return []byte(ms.secret), nil
-	})
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		id := claims["id"].(string)
-		return id, nil
-	} else {
-		return "", err
-	}
+	return &l, nil
 }
 
 // Making sending errors easier
