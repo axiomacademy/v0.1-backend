@@ -11,6 +11,7 @@ import (
 
 type Match struct {
 	Id        string
+	Token     string
 	Status    string
 	Scheduled bool
 	Tutor     string
@@ -48,44 +49,14 @@ func (r *Repository) ToMatchModel(m Match) (model.Match, error) {
 	return model.Match{ID: m.Id, Status: m.Status, Scheduled: m.Scheduled, Tutor: &rt, Student: &rs, Subject: &rsub, StartTime: &m.StartTime, EndTime: &m.EndTime}, nil
 }
 
-// Create a new on-demand match. Takes in the status string, student UUID string, subject UUID string
-func (r *Repository) CreateOnDemandMatch(status string, sid string, subid string) (Match, error) {
-	var m Match
-	m.Id = uuid.New()
-	m.Status = status
-	m.Scheduled = false
-	m.Student = sid
-	m.Subject = subid
-
-	tx, err := r.dbPool.Begin(context.Background())
-	if err != nil {
-		return m, err
-	}
-
-	defer tx.Rollback(context.Background())
-
-	sql := `INSERT INTO matchings (id, status, scheduled, student, subject) VALUES ($1, $2, $3, $4, $5)`
-	_, err = tx.Exec(context.Background(), sql, m.Id, m.Status, m.Scheduled, m.Student, m.Subject)
-
-	if err != nil {
-		return m, err
-	}
-
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return m, err
-	}
-
-	return m, nil
-}
-
-// Create a new scheduled match process
+// Create a new match process
 // Takes a status string, student UUID string, tutor UUID string, subject UUID string, startTime and endTime in absolute time.Time
-func (r *Repository) CreateScheduledMatch(status string, sid string, tid string, subid string, startTime time.Time, endTime time.Time) (Match, error) {
+func (r *Repository) CreateMatch(token string, status string, scheduled bool, sid string, tid string, subid string, startTime time.Time, endTime time.Time) (Match, error) {
 	var m Match
 	m.Id = uuid.New()
+	m.Token = token
 	m.Status = status
-	m.Scheduled = false
+	m.Scheduled = scheduled
 	m.Student = sid
 	m.Tutor = tid
 	m.Subject = subid
@@ -101,8 +72,8 @@ func (r *Repository) CreateScheduledMatch(status string, sid string, tid string,
 
 	period := getTstzrange(startTime, endTime)
 
-	sql := `INSERT INTO matchings (id, status, scheduled, student, tutor, subject, period) VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err = tx.Exec(context.Background(), sql, m.Id, m.Status, m.Scheduled, m.Student, m.Tutor, m.Subject, period)
+	sql := `INSERT INTO matchings (id, token, status, scheduled, student, tutor, subject, period) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+	_, err = tx.Exec(context.Background(), sql, m.Id, m.Token, m.Status, m.Scheduled, m.Student, m.Tutor, m.Subject, period)
 
 	if err != nil {
 		return m, err
@@ -143,11 +114,11 @@ func (r *Repository) UpdateMatch(m Match) error {
 
 // Gets the match struct based on the match UUID
 func (r *Repository) GetMatchById(mid string) (Match, error) {
-	sql := `SELECT id, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE id = $1`
+	sql := `SELECT id, token, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE id = $1`
 	var period pgtype.Tstzrange
 	var m Match
 
-	if err := r.dbPool.QueryRow(context.Background(), sql, mid).Scan(&m.Id, &m.Status, &m.Scheduled, &m.Tutor, &m.Student, &m.Subject, &period, &m.Lesson); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, mid).Scan(&m.Id, &m.Token, &m.Status, &m.Scheduled, &m.Tutor, &m.Student, &m.Subject, &period, &m.Lesson); err != nil {
 		return m, err
 	}
 
@@ -157,8 +128,25 @@ func (r *Repository) GetMatchById(mid string) (Match, error) {
 	return m, nil
 }
 
+// Gets the match struct based on the token, if it is on demand and it is a valid match
+func (r *Repository) CheckForMatch(token string) (Match, error) {
+	sql := `SELECT id, token, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE token = $1 AND scheduled = FALSE AND status = "MATCHED"`
+	var period pgtype.Tstzrange
+	var m Match
+
+	if err := r.dbPool.QueryRow(context.Background(), sql, token).Scan(&m.Id, &m.Token, &m.Status, &m.Scheduled, &m.Tutor, &m.Student, &m.Subject, &period, &m.Lesson); err != nil {
+		return m, err
+	}
+
+	period.Upper.AssignTo(&m.EndTime)
+	period.Lower.AssignTo(&m.StartTime)
+
+	return m, nil
+}
+
+// Gets all the scheduled pending matches for a student, takes in a tutor UUID
 func (r *Repository) GetTutorPendingMatches(tid string) ([]Match, error) {
-	sql := `SELECT id, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE tutor = $1 AND status = $2`
+	sql := `SELECT id, token, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE tutor = $1 AND status = $2 AND scheduled = TRUE`
 
 	var matches []Match
 
@@ -172,7 +160,7 @@ func (r *Repository) GetTutorPendingMatches(tid string) ([]Match, error) {
 		var m Match
 		var period pgtype.Tstzrange
 
-		err := rows.Scan(&m.Id, &m.Status, &m.Scheduled, &m.Tutor, &m.Student, &m.Subject, &period, &m.Lesson)
+		err := rows.Scan(&m.Id, &m.Token, &m.Status, &m.Scheduled, &m.Tutor, &m.Student, &m.Subject, &period, &m.Lesson)
 
 		if err != nil {
 			return nil, err
@@ -194,7 +182,7 @@ func (r *Repository) GetTutorPendingMatches(tid string) ([]Match, error) {
 
 // Gets all the pending matches for a student, takes in a student UUID
 func (r *Repository) GetStudentPendingMatches(sid string) ([]Match, error) {
-	sql := `SELECT id, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE student = $1 AND status = $2`
+	sql := `SELECT id, token, status, scheduled, tutor, student, subject, period, lesson FROM matchings WHERE student = $1 AND status = $2 AND scheduled = TRUE`
 
 	var matches []Match
 
@@ -208,7 +196,7 @@ func (r *Repository) GetStudentPendingMatches(sid string) ([]Match, error) {
 		var m Match
 		var period pgtype.Tstzrange
 
-		err := rows.Scan(&m.Id, &m.Status, &m.Scheduled, &m.Tutor, &m.Student, &m.Subject, &period, &m.Lesson)
+		err := rows.Scan(&m.Id, &m.Token, &m.Status, &m.Scheduled, &m.Tutor, &m.Student, &m.Subject, &period, &m.Lesson)
 
 		if err != nil {
 			return nil, err
