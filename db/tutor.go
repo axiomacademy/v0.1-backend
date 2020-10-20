@@ -125,7 +125,6 @@ func (r *Repository) UpdateTutor(t Tutor) error {
 func (r *Repository) GetTutorById(id string) (Tutor, error) {
 	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, status, last_seen, push_token FROM tutors WHERE id = $1`
 
-	var lastSeen pgtype.Timestamptz
 	var t Tutor
 
 	if err := r.dbPool.QueryRow(context.Background(), sql, id).Scan(
@@ -141,7 +140,7 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 		&t.Rating,
 		&t.Education,
 		&t.Status,
-		&lastSeen,
+		&t.LastSeen,
 		&t.PushToken); err != nil {
 		return t, err
 	}
@@ -151,8 +150,6 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 	if err != nil {
 		return t, err
 	}
-
-	lastSeen.AssignTo(&t.LastSeen)
 
 	var subids []string
 
@@ -168,7 +165,6 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, status, last_seen, push_token FROM tutors WHERE username = $1`
 
-	var lastSeen pgtype.Timestamptz
 	var t Tutor
 
 	if err := r.dbPool.QueryRow(context.Background(), sql, username).Scan(
@@ -184,7 +180,7 @@ func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 		&t.Rating,
 		&t.Education,
 		&t.Status,
-		&lastSeen,
+		&t.LastSeen,
 		&t.PushToken); err != nil {
 		return t, err
 	}
@@ -202,8 +198,6 @@ func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 	}
 
 	t.Subjects = subids
-
-	lastSeen.AssignTo(&t.LastSeen)
 
 	return t, nil
 }

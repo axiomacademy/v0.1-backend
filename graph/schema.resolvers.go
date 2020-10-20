@@ -8,6 +8,8 @@ import (
 	"errors"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
 	"github.com/solderneer/axiom-backend/graph/model"
@@ -39,6 +41,9 @@ func (r *mutationResolver) CreateStudent(ctx context.Context, input model.NewStu
 func (r *mutationResolver) LoginStudent(ctx context.Context, input model.LoginInfo) (string, error) {
 	s, err := r.Repo.GetStudentByUsername(input.Username)
 	if err != nil {
+		r.Logger.WithFields(log.Fields{
+			"err": err.Error(),
+		}).Error("Cannot log in")
 		return "", errors.New("Invalid username")
 	}
 
@@ -372,7 +377,7 @@ func (r *queryResolver) Lessons(ctx context.Context, input model.TimeRangeReques
 		rl, err := r.Repo.ToLessonModel(l)
 		if err != nil {
 			r.sendError(err, "Cannot parse lesson")
-			return nil, Unauthorised
+			return nil, InternalServerError
 		}
 		lessons = append(lessons, &rl)
 	}
@@ -472,6 +477,9 @@ func (r *queryResolver) GetScheduledMatches(ctx context.Context, input model.Sch
 		}
 
 		tids, err := r.Ms.MatchScheduled(user, subject, input.Time.StartTime, input.Time.EndTime, 20)
+		if err != nil {
+			return nil, InternalServerError
+		}
 
 		var tutors []*model.Tutor
 		for _, tid := range tids {

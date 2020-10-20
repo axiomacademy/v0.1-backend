@@ -43,6 +43,7 @@ func (ms *MatchService) MatchScheduled(s db.Student, subject db.Subject, startTi
 
 	var availabletids []string
 	var count int
+
 	// Filter affinity Ids
 	for _, tid := range affinitytids {
 
@@ -70,9 +71,15 @@ func (ms *MatchService) MatchScheduled(s db.Student, subject db.Subject, startTi
 			return nil, err
 		}
 
+		// Check for the edge case where no tutors are available
+		if len(randomtids) == 0 {
+			ms.logger.Error("Cannot find ANY random available tutors")
+			return nil, errors.New("No tutors available for that timeslot")
+		}
+
 		for _, tid := range randomtids {
 
-			if count >= 20 {
+			if count >= limit {
 				break
 			}
 

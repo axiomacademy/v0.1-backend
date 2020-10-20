@@ -116,9 +116,9 @@ func (r *Repository) GetOnlineRandomMatches(subid string, count int) ([]string, 
 		tutors.last_seen > $1 AND
 		tutors.status = AVAILABLE AND
 		teaching.subject = $2
-	TABLESAMPLE ($3 ROWS)
-	LIMIT $4
-	`
+	ORDER BY RANDOM() LIMIT $3`
+
+	// TODO: THIS QUERY DOES NOT SCALE WELL WITH LARGE DATABASES, REFACTOR
 
 	var tids []string
 
@@ -158,17 +158,14 @@ func (r *Repository) GetOnlineAffinityMatches(sid string, subid string, count in
 	WHERE 
 		affinity.student = $1 AND
 		affinity.subject = $2 AND
-		tutors.last_seen > timestamptz '$3' AND
+		tutors.last_seen > $3 AND
 		tutors.status = AVAILABLE
-	ORDER_BY affinity.score DESC
+	ORDER BY affinity.score DESC
 	LIMIT $4`
 
 	var tids []string
 
-	exp, err := time.Now().Add(time.Minute * 1).MarshalText()
-	if err != nil {
-		return nil, err
-	}
+	exp := time.Now().Add(time.Minute * -1)
 
 	rows, err := r.dbPool.Query(context.Background(), sql, sid, subid, exp, count)
 	if err != nil {

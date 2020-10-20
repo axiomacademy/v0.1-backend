@@ -27,6 +27,11 @@ func (amw *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 		}
 
 		tokenstr := c.Value
+		if tokenstr == "" {
+			http.Error(w, "Empty auth token", http.StatusForbidden)
+			return
+		}
+
 		id, err := auth.ParseToken(tokenstr, amw.Secret)
 		if err != nil {
 			http.Error(w, "Invalid auth token", http.StatusForbidden)
