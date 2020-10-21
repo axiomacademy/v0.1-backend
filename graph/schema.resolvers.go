@@ -288,6 +288,25 @@ func (r *mutationResolver) UpdateNotification(ctx context.Context, input model.U
 		return nil, InternalServerError
 	}
 
+	// Check that notification is for the correct user
+	u, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	switch user := u.(type) {
+	case db.Student:
+		if n.Student != user.Id {
+			return nil, Unauthorised
+		}
+	case db.Tutor:
+		if n.Tutor != user.Id {
+			return nil, Unauthorised
+		}
+	default:
+		return nil, Unauthorised
+	}
+
 	n.Read = input.Read
 
 	err = r.Repo.UpdateNotification(n)

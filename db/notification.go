@@ -101,7 +101,7 @@ func (r *Repository) GetNotificationById(nid string) (Notification, error) {
 	var s pgtype.Varchar
 	var t pgtype.Varchar
 
-	if err := r.dbPool.QueryRow(context.Background(), sql, nid).Scan(&n.Id, &t, &s, &n.Title, &n.Image, &n.Read, &n.Created); err != nil {
+	if err := r.dbPool.QueryRow(context.Background(), sql, nid).Scan(&n.Id, &t, &s, &n.Title, &n.Subtitle, &n.Image, &n.Read, &n.Created); err != nil {
 		return n, err
 	}
 
