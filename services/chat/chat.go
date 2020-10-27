@@ -17,39 +17,6 @@ type MessageRange struct {
 	End time.Time
 }
 
-func FromModelMessageRange(m model.MessageRange) (*MessageRange, error) {
-	if m.Start == nil && m.End == nil {
-		start := time.Date(0, 0, 0, 0, 0, 0 ,0, time.UTC).Format("2006-01-02 15:04:05.999999999 -0700 MST")
-		m.Start = &start
-		end := time.Now().Format("2006-01-02 15:04:05.999999999 -0700 MST")
-		m.End = &end
-	} else if m.Start == nil {
-		start := time.Date(0, 0, 0, 0, 0, 0 ,0, time.UTC).Format("2006-01-02 15:04:05.999999999 -0700 MST")
-		m.Start = &start
-	} else if m.End == nil {
-		end := time.Now().Format("2006-01-02 15:04:05.999999999 -0700 MST")
-		m.End = &end
-	}
-
-	start, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", *m.Start)
-	if err != nil {
-		return nil, err
-	}
-
-	end, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", *m.End)
-	if err != nil {
-		return nil, err
-	}
-
-	mr := &MessageRange {
-		To: m.To,
-		Start: start,
-		End: end,
-	}
-
-	return mr, nil
-}
-
 type Chat struct {
 	dbClient influxdb2.Client
 	org string
@@ -102,13 +69,8 @@ func (c *Chat) Close() {
 }
 
 func (c *Chat) GetMessages(ctx context.Context, from string, r model.MessageRange) ([]*model.Message, error) {
-	mr, err := FromModelMessageRange(r)
-	if err != nil {
-		return nil, err
-	}
-
 	api := c.dbClient.QueryAPI(c.org)
-	query := fmt.Sprintf(`from(bucket:"%s")|> range(start: %d, end: %d)|> filter(fn: (r) => r._measurement == "msg" and r.to == "%s" and r.from == "%s")`, c.bucket, mr.Start.Unix(), mr.End.Unix(), mr.To, from)
+	query := fmt.Sprintf(`from(bucket:"%s")|> range(start: %d, end: %d)|> filter(fn: (r) => r._measurement == "msg" and r.to == "%s" and r.from == "%s")`, c.bucket, r.Start.Unix(), r.End.Unix(), r.To, from)
 	res, err := api.Query(ctx, query)
 	if err != nil {
 		return nil, err
@@ -121,7 +83,7 @@ func (c *Chat) GetMessages(ctx context.Context, from string, r model.MessageRang
 		m := &model.Message {
 			To: vals["to"].(string),
 			From: vals["form"].(string),
-			Timestamp: record.Time().String(),
+			Timestamp: record.Time(),
 			Message: vals["msg"].(string),
 		}
 
@@ -147,7 +109,7 @@ func (c *Chat) SendMessage(ctx context.Context, sender string, message model.Sen
 	c.channels[message.To] <- &model.Message {
 		To: message.To,
 		From: sender,
-		Timestamp: timestamp.String(),
+		Timestamp: timestamp,
 		Message: message.Message,
 	}
 	c.mux.Unlock()
