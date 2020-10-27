@@ -13,60 +13,61 @@ const TWILIO_API_URL = "https://api.twilio.com/2010-04-01"
 const TWILIO_VIDEO_API_URL = "https://video.twilio.com/v1"
 
 type TwilioLink struct {
-	Participants	string	`json:"participants"`
-	Recordings		string	`json:"recordings"`
+	Participants string `json:"participants"`
+	Recordings   string `json:"recordings"`
 }
 
 type TwilioRoomResponse struct {
-	AccountSID									string				`json:"account_sid"`
-	DateCreated									time.Time			`json:"date_created"`
-	DateUpdated									time.Time			`json:"date_updated"`
-	Status											string				`json:"status"`
-	Type												string				`json:"type"`
-	SID													string				`json:"sid"`
-	EnableTurn									bool					`json:"enable_turn"`
-	UniqueName									string				`json:"unique_name"`
-	MaxParticipants							int						`json:"max_participants"`
-	Duration										int						`json:"duration"`
-	StatusCallbackMethod				string				`json:"status_callback_method"`
-	StatusCallback							string				`json:"status_callback"`
-	RecordParticipantsOnConnect	bool					`json:"record_participants_on_connect"`
-	VideoCodecs									[]string			`json:"video_codecs"`
-	MediaRegion									string				`json:"media_region"`
-	EndTime											time.Time			`json:"end_time"`
-	Url													string				`json:"url"`
-	Links												[]TwilioLink	`json:"links"`
+	AccountSID                  string       `json:"account_sid"`
+	DateCreated                 time.Time    `json:"date_created"`
+	DateUpdated                 time.Time    `json:"date_updated"`
+	Status                      string       `json:"status"`
+	Type                        string       `json:"type"`
+	SID                         string       `json:"sid"`
+	EnableTurn                  bool         `json:"enable_turn"`
+	UniqueName                  string       `json:"unique_name"`
+	MaxParticipants             int          `json:"max_participants"`
+	Duration                    int          `json:"duration"`
+	StatusCallbackMethod        string       `json:"status_callback_method"`
+	StatusCallback              string       `json:"status_callback"`
+	RecordParticipantsOnConnect bool         `json:"record_participants_on_connect"`
+	VideoCodecs                 []string     `json:"video_codecs"`
+	MediaRegion                 string       `json:"media_region"`
+	EndTime                     time.Time    `json:"end_time"`
+	Url                         string       `json:"url"`
+	Links                       []TwilioLink `json:"links"`
 }
 
 type TwilioException struct {
-	Status		int			`json:"status"`
-	Message		string	`json:"message"`
-	Code			int			`json:"code"`
-	MoreInfo	string	`json:"more_info"`
+	Status   int    `json:"status"`
+	Message  string `json:"message"`
+	Code     int    `json:"code"`
+	MoreInfo string `json:"more_info"`
 }
+
 func (e *TwilioException) Error() string {
 	return fmt.Sprintf("Status %d: Twilio error %d: %s; %s", e.Status, e.Code, e.Message, e.MoreInfo)
 }
 
 type APIKeyResponse struct {
-	SID string `json:"sid"`
-	FriendlyName string `json:"friendly_name"`
-	DateCreated time.Time `json:"date_created"`
-	DateUpdated time.Time `json:"date_updated"`
-	Secret string `json:"secret"`
+	SID          string    `json:"sid"`
+	FriendlyName string    `json:"friendly_name"`
+	DateCreated  time.Time `json:"date_created"`
+	DateUpdated  time.Time `json:"date_updated"`
+	Secret       string    `json:"secret"`
 }
 
 type VideoClient struct {
-	accountSID	string
-	authToken		string
-	client			*http.Client
-	apiKey			*APIKeyResponse
-	tokenExpiry	time.Duration
+	accountSID  string
+	authToken   string
+	client      *http.Client
+	apiKey      *APIKeyResponse
+	tokenExpiry time.Duration
 }
 
 func NewVideoClient(accountSID string, authToken string, tokenExpiry time.Duration) (*VideoClient, error) {
 	client := &http.Client{}
-	vc := &VideoClient {
+	vc := &VideoClient{
 		accountSID,
 		authToken,
 		client,
@@ -123,7 +124,7 @@ func (c *VideoClient) makeRequest(method string, path string, values url.Values)
 		body = ""
 	}
 
-	req, err := http.NewRequest(method, TWILIO_VIDEO_API_URL + path, strings.NewReader(body))
+	req, err := http.NewRequest(method, TWILIO_VIDEO_API_URL+path, strings.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +175,7 @@ func (c *VideoClient) CreateRoom(name string) (*TwilioRoomResponse, error) {
 func (c *VideoClient) CompleteRoom(room string) error {
 	values := url.Values{}
 	values.Set("Status", "completed")
-	_, err := c.makeRequest("POST", "/Rooms/" + room, values)
+	_, err := c.makeRequest("POST", "/Rooms/"+room, values)
 	if err != nil {
 		return err
 	}
@@ -183,7 +184,7 @@ func (c *VideoClient) CompleteRoom(room string) error {
 }
 
 func (c *VideoClient) GetRoom(room string) (*TwilioRoomResponse, error) {
-	res, err := c.makeRequest("GET", "/Rooms/" + room, nil)
+	res, err := c.makeRequest("GET", "/Rooms/"+room, nil)
 	if err != nil {
 		return nil, err
 	}

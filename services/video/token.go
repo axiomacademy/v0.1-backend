@@ -11,33 +11,33 @@ import (
 )
 
 type AccessTokenHeader struct {
-	Type				string	`json:"typ"`
-	Algorithm		string	`json:"alg"`
-	ContentType	string	`json:"cty"`
+	Type        string `json:"typ"`
+	Algorithm   string `json:"alg"`
+	ContentType string `json:"cty"`
 }
 
 type VideoGrant struct {
-	Room	string	`json:"room"`
+	Room string `json:"room"`
 }
 
 type AccessTokenGrant struct {
-	Identity	string			`json:"identity"`
-	Video			VideoGrant	`json:"video"`
+	Identity string     `json:"identity"`
+	Video    VideoGrant `json:"video"`
 }
 
 type AccessTokenBody struct {
-	JTI			string						`json:"jti"`
-	ISS			string						`json:"iss"`
-	Sub			string						`json:"sub"`
-	Nbf			int64							`json:"nbf"`
-	Exp			int64							`json:"exp"`
-	Grants	AccessTokenGrant	`json:"grants"`
+	JTI    string           `json:"jti"`
+	ISS    string           `json:"iss"`
+	Sub    string           `json:"sub"`
+	Nbf    int64            `json:"nbf"`
+	Exp    int64            `json:"exp"`
+	Grants AccessTokenGrant `json:"grants"`
 }
 
 func (c *VideoClient) GenerateAccessToken(uid string, room string) (string, error) {
-	header := AccessTokenHeader {
-		Type: "JWT",
-		Algorithm: "HS256",
+	header := AccessTokenHeader{
+		Type:        "JWT",
+		Algorithm:   "HS256",
 		ContentType: "twilio-fpa;v=1",
 	}
 
@@ -46,24 +46,24 @@ func (c *VideoClient) GenerateAccessToken(uid string, room string) (string, erro
 		return "", err
 	}
 
-	videoGrant := VideoGrant {
+	videoGrant := VideoGrant{
 		Room: room,
 	}
 
-	grant := AccessTokenGrant {
+	grant := AccessTokenGrant{
 		Identity: uid,
-		Video: videoGrant,
+		Video:    videoGrant,
 	}
 
 	nbf := time.Now()
 	exp := nbf.Add(c.tokenExpiry)
 
-	body := AccessTokenBody {
-		JTI: uuid.New(),
-		ISS: c.apiKey.SID,
-		Sub: c.accountSID,
-		Nbf: nbf.Unix(),
-		Exp: exp.Unix(),
+	body := AccessTokenBody{
+		JTI:    uuid.New(),
+		ISS:    c.apiKey.SID,
+		Sub:    c.accountSID,
+		Nbf:    nbf.Unix(),
+		Exp:    exp.Unix(),
 		Grants: grant,
 	}
 

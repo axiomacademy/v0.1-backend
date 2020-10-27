@@ -6,5 +6,6 @@ CREATE TABLE IF NOT EXISTS students (
   email VARCHAR(127) NOT NULL UNIQUE,
   hashed_password TEXT NOT NULL,
   profile_pic TEXT,
+  push_token TEXT,
   PRIMARY KEY(id)
 );
