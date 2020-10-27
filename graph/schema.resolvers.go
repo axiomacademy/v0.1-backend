@@ -163,7 +163,7 @@ func (r *mutationResolver) CreateLessonRoom(ctx context.Context, input string) (
 	t := u.(db.Tutor)
 
 	// Create Room
-	room, err := r.Video.CreateRoom()
+	room, err := r.Video.CreateRoom(input)
 	if err != nil {
 		return "", err
 	}
