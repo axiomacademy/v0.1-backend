@@ -17,15 +17,13 @@ import (
 type MatchService struct {
 	logger *log.Logger
 
-	secret string
-	ns     *notifs.NotifService
-	repo   *db.Repository
+	ns   *notifs.NotifService
+	repo *db.Repository
 }
 
 // Inititialise the matching service
-func (ms *MatchService) Init(logger *log.Logger, secret string, ns *notifs.NotifService, repo *db.Repository) {
+func (ms *MatchService) Init(logger *log.Logger, ns *notifs.NotifService, repo *db.Repository) {
 	ms.logger = logger
-	ms.secret = secret
 	ms.ns = ns
 	ms.repo = repo
 
