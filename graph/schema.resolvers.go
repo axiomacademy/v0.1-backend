@@ -575,7 +575,7 @@ func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model
 		if err == errors.New("No match found") {
 			return nil, err
 		} else if err != nil {
-			r.sendError(err, "Error retrieving matct")
+			r.sendError(err, "Error retrieving match")
 			return nil, InternalServerError
 		}
 
