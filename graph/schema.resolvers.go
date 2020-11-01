@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -185,6 +186,17 @@ func (r *mutationResolver) CreateLessonRoom(ctx context.Context, input string) (
 	case db.Student:
 		return "", Unauthorised
 	case db.Tutor:
+		inLesson, err := r.Repo.IsTutorInLesson(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to check lesson")
+			return "", InternalServerError
+		}
+
+		if !inLesson {
+			r.sendError(err, fmt.Sprintf("Tutor %s is not in lesson %s", user.Id, input))
+			return "", Unauthorised
+		}
+
 		room, err := r.Video.CreateRoom(input)
 		if err != nil {
 			r.sendError(err, "Unable to create room")
@@ -204,13 +216,43 @@ func (r *mutationResolver) CreateLessonRoom(ctx context.Context, input string) (
 }
 
 func (r *mutationResolver) EndLessonRoom(ctx context.Context, input string) (string, error) {
-	_, err := auth.UserFromContext(ctx)
+	u, err := auth.UserFromContext(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	err = r.Video.CompleteRoom(input)
-	return "", err
+	switch user := u.(type) {
+	case db.Student:
+		inLesson, err := r.Repo.IsStudentInLesson(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to check lesson")
+			return "", InternalServerError
+		}
+
+		if !inLesson {
+			r.sendError(err, fmt.Sprintf("Student %s is not in lesson %s", user.Id, input))
+			return "", Unauthorised
+		}
+
+		err = r.Video.CompleteRoom(input)
+		return "", err
+	case db.Tutor:
+		inLesson, err := r.Repo.IsTutorInLesson(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to check lesson")
+			return "", InternalServerError
+		}
+
+		if !inLesson {
+			r.sendError(err, fmt.Sprintf("Tutor %s is not in lesson %s", user.Id, input))
+			return "", Unauthorised
+		}
+
+		err = r.Video.CompleteRoom(input)
+		return "", err
+	default:
+		return "", InternalServerError
+	}
 }
 
 func (r *mutationResolver) RequestOnDemandMatch(ctx context.Context, input model.OnDemandMatchRequest) (string, error) {
@@ -600,23 +642,46 @@ func (r *queryResolver) GetLessonRoom(ctx context.Context, input string) (string
 		return "", err
 	}
 
-	var uid string
 	switch user := u.(type) {
 	case db.Student:
-		uid = user.Id
+		inLesson, err := r.Repo.IsStudentInLesson(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to check lesson")
+			return "", InternalServerError
+		}
+
+		if !inLesson {
+			r.sendError(err, fmt.Sprintf("Student %s is not in lesson %s", user.Id, input))
+			return "", Unauthorised
+		}
+
+		token, err := r.Video.GenerateAccessToken(user.Id, input)
+		if err != nil {
+			return "", err
+		}
+
+		return token, nil
 	case db.Tutor:
-		uid = user.Id
+		inLesson, err := r.Repo.IsTutorInLesson(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to check lesson")
+			return "", InternalServerError
+		}
+
+		if !inLesson {
+			r.sendError(err, fmt.Sprintf("Tutor %s is not in lesson %s", user.Id, input))
+			return "", Unauthorised
+		}
+
+		token, err := r.Video.GenerateAccessToken(user.Id, input)
+		if err != nil {
+			return "", err
+		}
+
+		return token, nil
 	default:
-		return "", Unauthorised
+		return "", InternalServerError
 	}
-
-	// TODO: Auth-ing who can delete a room is probably a splendid idea
-	token, err := r.Video.GenerateAccessToken(uid, input)
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
 }
 
 func (r *subscriptionResolver) SubscribeMatchNotifications(ctx context.Context) (<-chan *model.MatchNotification, error) {
