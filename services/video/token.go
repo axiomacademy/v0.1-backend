@@ -34,6 +34,7 @@ type AccessTokenBody struct {
 	Grants AccessTokenGrant `json:"grants"`
 }
 
+// Generate the Rooms access token
 func (c *VideoClient) GenerateAccessToken(uid string, room string) (string, error) {
 	header := AccessTokenHeader{
 		Type:        "JWT",

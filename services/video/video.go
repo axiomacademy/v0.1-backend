@@ -65,6 +65,7 @@ type VideoClient struct {
 	tokenExpiry time.Duration
 }
 
+// Initialise the video client. Requests an API key from the API.
 func NewVideoClient(accountSID string, authToken string, tokenExpiry time.Duration) (*VideoClient, error) {
 	client := &http.Client{}
 	vc := &VideoClient{
@@ -85,6 +86,7 @@ func NewVideoClient(accountSID string, authToken string, tokenExpiry time.Durati
 	return vc, nil
 }
 
+// Call the Rooms API to request an API key. Bootstrapping~
 func (c *VideoClient) requestAPIKey() (*APIKeyResponse, error) {
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/Accounts/%s/Keys.json", TWILIO_API_URL, c.accountSID), nil)
 	if err != nil {
@@ -116,6 +118,7 @@ func (c *VideoClient) requestAPIKey() (*APIKeyResponse, error) {
 	}
 }
 
+// Helper method to make HTTP requests to the Rooms API with the auth token in the Basic Auth. Also handles error codes.
 func (c *VideoClient) makeRequest(method string, path string, values url.Values) (*TwilioRoomResponse, error) {
 	var body string
 	if values != nil {
@@ -158,6 +161,7 @@ func (c *VideoClient) makeRequest(method string, path string, values url.Values)
 	}
 }
 
+// Calls the Rooms API to create a room.
 func (c *VideoClient) CreateRoom(name string) (*TwilioRoomResponse, error) {
 	v := url.Values{}
 	if name != "" {
@@ -172,6 +176,7 @@ func (c *VideoClient) CreateRoom(name string) (*TwilioRoomResponse, error) {
 	return res, nil
 }
 
+// Calls the Rooms API to complete a room.
 func (c *VideoClient) CompleteRoom(room string) error {
 	values := url.Values{}
 	values.Set("Status", "completed")
@@ -183,6 +188,7 @@ func (c *VideoClient) CompleteRoom(room string) error {
 	return nil
 }
 
+// Calls the Rooms API to get a room's information. Used for creating access tokens.
 func (c *VideoClient) GetRoom(room string) (*TwilioRoomResponse, error) {
 	res, err := c.makeRequest("GET", "/Rooms/"+room, nil)
 	if err != nil {
