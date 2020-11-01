@@ -20,6 +20,7 @@ type Lesson struct {
 	EndTime   time.Time
 }
 
+// To convert the db.Lesson to model.Lesson
 func (r *Repository) ToLessonModel(l Lesson) (model.Lesson, error) {
 
 	s, err := r.GetStudentById(l.Student)
@@ -33,7 +34,10 @@ func (r *Repository) ToLessonModel(l Lesson) (model.Lesson, error) {
 	}
 
 	rs := r.ToStudentModel(s)
-	rt := r.ToTutorModel(t)
+	rt, err := r.ToTutorModel(t)
+	if err != nil {
+		return model.Lesson{}, err
+	}
 	rsub := r.ToSubjectModel(l.Subject)
 
 	return model.Lesson{ID: l.Id, Subject: &rsub, Summary: l.Summary, Tutor: &rt, Student: &rs, Scheduled: l.Scheduled, StartTime: l.StartTime, EndTime: l.EndTime}, nil
@@ -105,6 +109,7 @@ func (r *Repository) UpdateLesson(l Lesson) error {
 	return nil
 }
 
+// Get lesson by the lesson UUID
 func (r *Repository) GetLessonById(id string) (Lesson, error) {
 	var period pgtype.Tstzrange
 	var l Lesson

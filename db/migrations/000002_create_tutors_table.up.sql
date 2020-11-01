@@ -5,14 +5,14 @@ CREATE TABLE IF NOT EXISTS tutors (
   last_name TEXT NOT NULL,
   email VARCHAR(127) NOT NULL UNIQUE,
   hashed_password TEXT NOT NULL,
-  profile_pic TEXT,
+  profile_pic TEXT NOT NULL DEFAULT '',
   hourly_rate INT NOT NULL,
-  bio TEXT,
+  bio TEXT NOT NULL DEFAULT '',
   rating INT NOT NULL,
-  education TEXT [],
-  status VARCHAR(12),
-	last_seen TIMESTAMPTZ,
-  push_token TEXT,
+  education TEXT [] NOT NULL DEFAULT {''},
+  status VARCHAR(12) NOT NULL DEFAULT 'UNAVAILABLE',
+	last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  push_token TEXT NOT NULL DEFAULT '',
   PRIMARY KEY(id)
 );
 
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS teaching (
       REFERENCES subjects(id)
 );
 
-CREATE TABLE IF NOT EXISTS availablities (
+CREATE TABLE IF NOT EXISTS availabilities (
   id VARCHAR(38) NOT NULL UNIQUE,
   tutor VARCHAR(38) NOT NULL,
   period TSTZRANGE NOT NULL,

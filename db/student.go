@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgtype"
 	"github.com/pborman/uuid"
@@ -19,11 +20,13 @@ type Student struct {
 	PushToken      string
 }
 
+// Convert from db.Student to model.Student
 func (r *Repository) ToStudentModel(s Student) model.Student {
 	return model.Student{ID: s.Id, Username: s.Username, FirstName: s.FirstName, LastName: s.LastName, Email: s.Email, ProfilePic: s.ProfilePic}
 }
 
-func (r *Repository) CreateStudent(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string) (Student, error) {
+// Creates a new student, returns a db.Student
+func (r *Repository) CreateStudent(username string, firstName string, lastName string, email string, hashedPassword string, profilePic string) (Student, error) {
 
 	var s Student
 
@@ -34,7 +37,7 @@ func (r *Repository) CreateStudent(username string, firstName string, lastName s
 	s.LastName = lastName
 	s.Email = email
 	s.HashedPassword = hashedPassword
-	s.ProfilePic = profile_pic
+	s.ProfilePic = profilePic
 
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
@@ -58,6 +61,7 @@ func (r *Repository) CreateStudent(username string, firstName string, lastName s
 	return s, nil
 }
 
+// Update student, takes an existing student. Only can update firstname, lastname, email, profile picture and APN push token
 func (r *Repository) UpdateStudent(s Student) error {
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
@@ -66,8 +70,8 @@ func (r *Repository) UpdateStudent(s Student) error {
 
 	defer tx.Rollback(context.Background())
 
-	sql := `UPDATE students SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, push_token = $7 WHERE id = $1`
-	_, err = tx.Exec(context.Background(), sql, s.Id, s.FirstName, s.LastName, s.Email, s.HashedPassword, s.ProfilePic, s.PushToken)
+	sql := `UPDATE students SET first_name = $2, last_name = $3, email = $4, profile_pic = $5, push_token = $6 WHERE id = $1`
+	_, err = tx.Exec(context.Background(), sql, s.Id, s.FirstName, s.LastName, s.Email, s.ProfilePic, s.PushToken)
 
 	if err != nil {
 		return err
@@ -81,6 +85,7 @@ func (r *Repository) UpdateStudent(s Student) error {
 	return nil
 }
 
+// Gets the student by student UUID
 func (r *Repository) GetStudentById(id string) (Student, error) {
 
 	var s Student
@@ -94,6 +99,7 @@ func (r *Repository) GetStudentById(id string) (Student, error) {
 	return s, nil
 }
 
+// Gets student by student username
 func (r *Repository) GetStudentByUsername(username string) (Student, error) {
 
 	var s Student
@@ -107,12 +113,15 @@ func (r *Repository) GetStudentByUsername(username string) (Student, error) {
 	return s, nil
 }
 
-func (r *Repository) GetStudentLessons(sid string) ([]Lesson, error) {
-	sql := `SELECT id, subject, tutor, student, scheduled, period FROM lessons WHERE student = $1`
+// Gets all student lessons, paginated by startTime and endTime
+func (r *Repository) GetStudentLessons(sid string, startTime time.Time, endTime time.Time) ([]Lesson, error) {
+	sql := `SELECT id, subject, tutor, student, scheduled, period FROM lessons WHERE student = $1 and $2 @> period`
 
 	var lessons []Lesson
 
-	rows, err := r.dbPool.Query(context.Background(), sql, sid)
+	period := getTstzrange(startTime, endTime)
+
+	rows, err := r.dbPool.Query(context.Background(), sql, sid, period)
 	if err != nil {
 		return nil, err
 	}

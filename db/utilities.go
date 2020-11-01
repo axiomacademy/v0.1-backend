@@ -18,7 +18,7 @@ func getTstzrange(startTime time.Time, endTime time.Time) pgtype.Tstzrange {
 		Upper:     upper,
 		Lower:     lower,
 		UpperType: pgtype.Inclusive,
-		LowerType: pgtype.Inclusive,
+		LowerType: pgtype.Exclusive,
 		Status:    pgtype.Present,
 	}
 }

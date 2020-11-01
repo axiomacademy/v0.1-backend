@@ -1,3 +1,4 @@
+// Package notifs handles all high level notification logic, along with being a firebase proxy
 package notifs
 
 import (
@@ -21,6 +22,7 @@ type NotifService struct {
 	nmutex sync.Mutex
 }
 
+// Inititalise the Notification service
 // Remember to set your GOOGLE_APPLICATION_CREDENTIALS="/home/user/Downloads/service-account-file.json" in the env variables
 func (ns *NotifService) Init(logger *log.Logger) {
 	ns.logger = logger
@@ -51,10 +53,12 @@ func (ns *NotifService) Init(logger *log.Logger) {
 	ns.logger.WithField("service", "notification").Info("Successfully initialised")
 }
 
+// Send a match notification to a specified user
 func (ns *NotifService) SendMatchNotification(n model.MatchNotification, uid string) {
 	ns.nchans[uid] <- &n
 }
 
+// Create a match subscriptions channel for a specific user
 func (ns *NotifService) CreateUserMatchChannel(user string) *chan *model.MatchNotification {
 	nchan := make(chan *model.MatchNotification, 1)
 
@@ -65,12 +69,14 @@ func (ns *NotifService) CreateUserMatchChannel(user string) *chan *model.MatchNo
 	return &nchan
 }
 
+// Delete a match subscribetion channel
 func (ns *NotifService) DeleteUserMatchChannel(user string) {
 	ns.nmutex.Lock()
 	delete(ns.nchans, user)
 	ns.nmutex.Unlock()
 }
 
+// Send a push notification using firebase
 // Takes a notification struct and the registration token of the user. Push notifications omit the image of the notification and time
 func (ns *NotifService) SendPushNotification(n db.Notification, token string) error {
 	message := &messaging.Message{

@@ -1,3 +1,4 @@
+// Package graph contains all the GraphQL resolvers
 package graph
 
 // This file will not be regenerated automatically.

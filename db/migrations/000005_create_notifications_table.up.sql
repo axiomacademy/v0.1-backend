@@ -4,9 +4,9 @@ CREATE TABLE IF NOT EXISTS notifications (
   student VARCHAR(38),
   title TEXT NOT NULL,
   subtitle TEXT NOT NULL,
-  image TEXT,
+  image TEXT NOT NULL DEFAULT '',
   read BOOL NOT NULL DEFAULT FALSE,
-  created TIMESTAMPTZ NOT NULL,
+  created TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY(id),
   CONSTRAINT fk_tutor
     FOREIGN KEY(tutor)
@@ -17,11 +17,12 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 CREATE TABLE IF NOT EXISTS matchings (
-  id VARCHAR(38),
+  id VARCHAR(38) NOT NULL,
+  token VARCHAR(38),
   status TEXT NOT NULL,
   scheduled BOOLEAN NOT NULL,
-  tutor VARCHAR(38),
-  student VARCHAR(38),
+  tutor VARCHAR(38) NOT NULL,
+  student VARCHAR(38) NOT NULL,
   subject VARCHAR(38) NOT NULL,
   period TSTZRANGE NOT NULL,
   lesson VARCHAR(38),
