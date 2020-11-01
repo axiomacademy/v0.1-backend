@@ -222,3 +222,14 @@ func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
 
 	return lessons, nil
 }
+
+func (r *Repository) IsTutorInLesson(tid string, lid string) (bool, error) {
+	sql := `SELECT 1 FROM lessons WHERE id = $1 AND tutor = $2`
+
+	rows, err := r.dbPool.Query(context.Background(), sql, lid, tid)
+	if err != nil {
+		return false, err
+	}
+
+	return rows.Next(), nil
+}
