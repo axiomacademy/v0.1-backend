@@ -179,7 +179,7 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 func (r *mutationResolver) CreateLessonRoom(ctx context.Context, input string) (string, error) {
 	u, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return "", err
+		return "", Unauthorised
 	}
 
 	switch user := u.(type) {
@@ -206,7 +206,7 @@ func (r *mutationResolver) CreateLessonRoom(ctx context.Context, input string) (
 		token, err := r.Video.GenerateAccessToken(user.Id, room.SID)
 		if err != nil {
 			r.sendError(err, "Unable to generate access token")
-			return "", err
+			return "", InternalServerError
 		}
 
 		return token, nil
@@ -218,7 +218,7 @@ func (r *mutationResolver) CreateLessonRoom(ctx context.Context, input string) (
 func (r *mutationResolver) EndLessonRoom(ctx context.Context, input string) (string, error) {
 	u, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return "", err
+		return "", Unauthorised
 	}
 
 	switch user := u.(type) {
@@ -235,7 +235,12 @@ func (r *mutationResolver) EndLessonRoom(ctx context.Context, input string) (str
 		}
 
 		err = r.Video.CompleteRoom(input)
-		return "", err
+		if err != nil {
+			r.sendError(err, "Unable to complete room")
+			return "", InternalServerError
+		}
+
+		return "", nil
 	case db.Tutor:
 		inLesson, err := r.Repo.IsTutorInLesson(user.Id, input)
 		if err != nil {
@@ -249,7 +254,12 @@ func (r *mutationResolver) EndLessonRoom(ctx context.Context, input string) (str
 		}
 
 		err = r.Video.CompleteRoom(input)
-		return "", err
+		if err != nil {
+			r.sendError(err, "Unable to complete room")
+			return "", InternalServerError
+		}
+
+		return "", nil
 	default:
 		return "", InternalServerError
 	}
@@ -639,7 +649,7 @@ func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model
 func (r *queryResolver) GetLessonRoom(ctx context.Context, input string) (string, error) {
 	u, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return "", err
+		return "", Unauthorised
 	}
 
 	switch user := u.(type) {
@@ -657,7 +667,8 @@ func (r *queryResolver) GetLessonRoom(ctx context.Context, input string) (string
 
 		token, err := r.Video.GenerateAccessToken(user.Id, input)
 		if err != nil {
-			return "", err
+			r.sendError(err, "Unable to generate room access token")
+			return "", InternalServerError
 		}
 
 		return token, nil
@@ -675,7 +686,8 @@ func (r *queryResolver) GetLessonRoom(ctx context.Context, input string) (string
 
 		token, err := r.Video.GenerateAccessToken(user.Id, input)
 		if err != nil {
-			return "", err
+			r.sendError(err, "Unable to generate room access token")
+			return "", InternalServerError
 		}
 
 		return token, nil
