@@ -21,23 +21,31 @@ type Tutor struct {
 	Bio            string
 	Rating         int
 	Education      []string
-	Subjects       []Subject
+	Subjects       []string
 	Status         string
 	LastSeen       time.Time
 	PushToken      string
 }
 
-func (r *Repository) ToTutorModel(t Tutor) model.Tutor {
+// Convert db.Tutor to model.Tutor
+func (r *Repository) ToTutorModel(t Tutor) (model.Tutor, error) {
 	var subjects []*model.Subject
-	for _, dbSubject := range t.Subjects {
+
+	dbSubjects, err := r.getTutorSubjects(t.Id)
+	if err != nil {
+		return model.Tutor{}, err
+	}
+
+	for _, dbSubject := range dbSubjects {
 		subject := r.ToSubjectModel(dbSubject)
 		subjects = append(subjects, &subject)
 	}
 
-	return model.Tutor{ID: t.Id, Username: t.Username, FirstName: t.FirstName, LastName: t.LastName, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: subjects}
+	return model.Tutor{ID: t.Id, Username: t.Username, FirstName: t.FirstName, LastName: t.LastName, Email: t.Email, ProfilePic: t.ProfilePic, HourlyRate: t.HourlyRate, Bio: t.Bio, Rating: t.Rating, Education: t.Education, Subjects: subjects}, nil
 }
 
-func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []Subject) (Tutor, error) {
+// Creates a new tutor, takes subject IDs
+func (r *Repository) CreateTutor(username string, firstName string, lastName string, email string, hashedPassword string, profile_pic string, hourly_rate int, rating int, bio string, education []string, subjects []string) (Tutor, error) {
 
 	var t Tutor
 
@@ -75,13 +83,14 @@ func (r *Repository) CreateTutor(username string, firstName string, lastName str
 	}
 
 	// Add Subjects to tutor
-	if err = r.AddSubjectsToTutor(t.Id, t.Subjects); err != nil {
+	if err = r.addSubjectsToTutor(t.Id, t.Subjects); err != nil {
 		return t, err
 	}
 
 	return t, nil
 }
 
+// Update tutor to the passed in tutor struct
 func (r *Repository) UpdateTutor(t Tutor) error {
 	tx, err := r.dbPool.Begin(context.Background())
 	if err != nil {
@@ -90,8 +99,8 @@ func (r *Repository) UpdateTutor(t Tutor) error {
 
 	defer tx.Rollback(context.Background())
 
-	sql := `UPDATE tutors SET first_name = $2, last_name = $3, email = $4, hashed_password = $5, profile_pic = $6, hourly_rate = $7, bio = $8, rating = $9, education = $10, status = $11, last_seen = $12, push_token = $13 WHERE id = $1`
-	_, err = tx.Exec(context.Background(), sql, t.Id, t.FirstName, t.LastName, t.Email, t.HashedPassword, t.ProfilePic, t.HourlyRate, t.Bio, t.Rating, t.Education, t.Status, t.LastSeen, t.PushToken)
+	sql := `UPDATE tutors SET first_name = $2, last_name = $3, email = $4, profile_pic = $5, hourly_rate = $6, bio = $7, rating = $8, education = $9, status = $10, last_seen = $11, push_token = $12 WHERE id = $1`
+	_, err = tx.Exec(context.Background(), sql, t.Id, t.FirstName, t.LastName, t.Email, t.ProfilePic, t.HourlyRate, t.Bio, t.Rating, t.Education, t.Status, t.LastSeen, t.PushToken)
 
 	if err != nil {
 		return err
@@ -102,20 +111,20 @@ func (r *Repository) UpdateTutor(t Tutor) error {
 	}
 
 	// Updating Subjects to tutor
-	if err = r.RemoveSubjectsFromTutor(t.Id); err != nil {
+	if err = r.removeSubjectsFromTutor(t.Id); err != nil {
 		return err
 	}
-	if err = r.AddSubjectsToTutor(t.Id, t.Subjects); err != nil {
+	if err = r.addSubjectsToTutor(t.Id, t.Subjects); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+// Get the tutor based on the Tutor UUID
 func (r *Repository) GetTutorById(id string) (Tutor, error) {
 	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, status, last_seen, push_token FROM tutors WHERE id = $1`
 
-	var lastSeen pgtype.Timestamptz
 	var t Tutor
 
 	if err := r.dbPool.QueryRow(context.Background(), sql, id).Scan(
@@ -131,19 +140,24 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 		&t.Rating,
 		&t.Education,
 		&t.Status,
-		&lastSeen,
+		&t.LastSeen,
 		&t.PushToken); err != nil {
 		return t, err
 	}
 
 	// Populating subjects separately it needs to be parsed
-	subjects, err := r.GetTutorSubjects(t.Id)
+	subjects, err := r.getTutorSubjects(t.Id)
 	if err != nil {
 		return t, err
 	}
 
-	lastSeen.AssignTo(&t.LastSeen)
-	t.Subjects = subjects
+	var subids []string
+
+	for _, subject := range subjects {
+		subids = append(subids, subject.Id)
+	}
+
+	t.Subjects = subids
 
 	return t, nil
 }
@@ -151,7 +165,6 @@ func (r *Repository) GetTutorById(id string) (Tutor, error) {
 func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 	sql := `SELECT id, username, first_name, last_name, email, hashed_password, profile_pic, hourly_rate, bio, rating, education, status, last_seen, push_token FROM tutors WHERE username = $1`
 
-	var lastSeen pgtype.Timestamptz
 	var t Tutor
 
 	if err := r.dbPool.QueryRow(context.Background(), sql, username).Scan(
@@ -167,28 +180,37 @@ func (r *Repository) GetTutorByUsername(username string) (Tutor, error) {
 		&t.Rating,
 		&t.Education,
 		&t.Status,
-		&lastSeen,
+		&t.LastSeen,
 		&t.PushToken); err != nil {
 		return t, err
 	}
 
 	// Populating subjects separately because it is an enum array
-	subjects, err := r.GetTutorSubjects(t.Id)
+	subjects, err := r.getTutorSubjects(t.Id)
 	if err != nil {
 		return t, err
 	}
 
-	lastSeen.AssignTo(&t.LastSeen)
-	t.Subjects = subjects
+	var subids []string
+
+	for _, subject := range subjects {
+		subids = append(subids, subject.Id)
+	}
+
+	t.Subjects = subids
+
 	return t, nil
 }
 
-func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
-	sql := `SELECT id, subject, summary, tutor, student, scheduled, period FROM lessons WHERE tutor = $1`
+// Get lessons that the tutor teaches, bounded by a time period
+func (r *Repository) GetTutorLessons(tid string, startTime time.Time, endTime time.Time) ([]Lesson, error) {
+	sql := `SELECT id, subject, summary, tutor, student, scheduled, period FROM lessons WHERE tutor = $1 and $2 @> period`
 
 	var lessons []Lesson
 
-	rows, err := r.dbPool.Query(context.Background(), sql, tid)
+	period := getTstzrange(startTime, endTime)
+
+	rows, err := r.dbPool.Query(context.Background(), sql, tid, period)
 	if err != nil {
 		return nil, err
 	}
@@ -221,4 +243,90 @@ func (r *Repository) GetTutorLessons(tid string) ([]Lesson, error) {
 	}
 
 	return lessons, nil
+}
+
+func (r *Repository) IsTutorInLesson(tid string, lid string) (bool, error) {
+	sql := `SELECT 1 FROM lessons WHERE id = $1 AND tutor = $2`
+
+	rows, err := r.dbPool.Query(context.Background(), sql, lid, tid)
+	if err != nil {
+		return false, err
+	}
+
+	return rows.Next(), nil
+}
+
+// Get all the subjects associated with a tutor based on tutor UUID
+func (r *Repository) getTutorSubjects(tid string) ([]Subject, error) {
+	sql := `SELECT subjects.id, subjects.name, subjects.standard FROM subjects INNER JOIN teaching ON subjects.id = teaching.subject WHERE teaching.tutor = $1`
+
+	var dbSubjects []Subject
+
+	rows, err := r.dbPool.Query(context.Background(), sql, tid)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var subject Subject
+		if err := rows.Scan(&subject.Id, &subject.Name, &subject.Standard); err != nil {
+			return nil, err
+		}
+
+		dbSubjects = append(dbSubjects, subject)
+
+		if err = rows.Err(); err != nil {
+			return nil, err
+		}
+	}
+
+	return dbSubjects, nil
+}
+
+// Add a fresh set of subjects to the tutor
+func (r *Repository) addSubjectsToTutor(tid string, subids []string) error {
+	tx, err := r.dbPool.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback(context.Background())
+
+	sql := `INSERT INTO teaching (tutor, subject) VALUES ($1, $2)`
+	for _, s := range subids {
+		_, err = tx.Exec(context.Background(), sql, tid, s)
+		if err != nil {
+			return err
+		}
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Delete all subjects from the tutor, should do this before you add a fresh set of subjects
+func (r *Repository) removeSubjectsFromTutor(tid string) error {
+	tx, err := r.dbPool.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback(context.Background())
+
+	sql := `DELETE FROM teaching WHERE tutor = $1`
+	_, err = tx.Exec(context.Background(), sql, tid)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

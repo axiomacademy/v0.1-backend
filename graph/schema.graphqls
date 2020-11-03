@@ -183,15 +183,18 @@ input TimeRangeRequest {
 ############################### QUERIES ####################################################
 
 type Query {
-  self: User!,
-  lessons: [Lesson!]!
+  self: User!
   messages(input: MessageRange!): [Message!]!
+  lessons(input: TimeRangeRequest!): [Lesson!]
   pendingMatches: [Match!] 
-  notifications(input: TimeRangeRequest!): [Notification!]!
+  notifications(input: TimeRangeRequest!): [Notification!]
   
   # Match Service
-  getScheduledMatches(input: ScheduledMatchParameters!): [String!]!
+  getScheduledMatches(input: ScheduledMatchParameters!): [Tutor!]!
   checkForMatch(input: String!): Lesson
+  
+  # Video Service
+  getLessonRoom(input: String!): String!
 }
 
 ############################### MUTATIONS ####################################################
@@ -209,8 +212,12 @@ type Mutation {
 
   sendMessage(input: SendMessage!): String!
   
+  # Video Service
+  createLessonRoom(input: String!): String!
+  endLessonRoom(input: String!): String!
+  
   # Match Service
-  matchOnDemand(input: OnDemandMatchRequest!): String!
+  requestOnDemandMatch(input: OnDemandMatchRequest!): String!
   requestScheduledMatch(input: ScheduledMatchRequest!): String!
   acceptOnDemandMatch(input: String!): Lesson!
   acceptScheduledMatch(input: String!): Lesson!
@@ -223,5 +230,5 @@ type Mutation {
 ############################### SUBSCRIPTIONS ####################################################
 type Subscription {
   subscribeMessages: Message!
-  subscribeMatchNotifications(user: String!): MatchNotification!
+  subscribeMatchNotifications: MatchNotification!
 }

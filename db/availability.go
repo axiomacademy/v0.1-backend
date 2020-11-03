@@ -84,7 +84,7 @@ func (r *Repository) GetAvailableTutors(sid string, subid string, startTime time
 		affinity.student = $1 AND
 		affinity.subject = $2 AND
 		availabilities.period @> $3
-	ORDER_BY affinity.score DESC`
+	ORDER BY affinity.score DESC`
 
 	var tids []string
 
@@ -118,12 +118,14 @@ func (r *Repository) GetRandomAvailableTutors(subid string, startTime time.Time,
 	sql := `
 	SELECT availabilities.tutor
 	FROM availabilities
-	INNER JOIN subjects ON subjects.tutor = availabilities.tutor
+	INNER JOIN teaching ON teaching.tutor = availabilities.tutor
+	INNER JOIN subjects ON subjects.id = teaching.subject
 	WHERE
 		subjects.id = $1 AND
 		availabilities.period @> $2
-	TABLESAMPLE ($3 ROWS)`
+	ORDER BY RANDOM() LIMIT $3`
 
+	// TODO: THIS QUERY DOES NOT SCALE WELL WITH LARGE DATABASES, REFACTOR
 	var tids []string
 
 	period := getTstzrange(startTime, endTime)

@@ -1,3 +1,4 @@
+// Package graph contains all the GraphQL resolvers
 package graph
 
 // This file will not be regenerated automatically.
@@ -10,6 +11,7 @@ import (
 	"github.com/solderneer/axiom-backend/services/chat"
 	"github.com/solderneer/axiom-backend/services/match"
 	"github.com/solderneer/axiom-backend/services/notifs"
+	"github.com/solderneer/axiom-backend/services/video"
 )
 
 type Resolver struct {
@@ -18,5 +20,6 @@ type Resolver struct {
 	Repo   *db.Repository
 	Ns     *notifs.NotifService
 	Cs     *chat.Chat
+	Video  *video.VideoClient
 	Ms     *match.MatchService
 }
