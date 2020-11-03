@@ -30,6 +30,7 @@ const defaultAuthToken = "user:pass"
 const defaultOrg = "axiom"
 const defaultBucket = "messages"
 
+// Initialise a Chat struct with InfluxDB connection information taken from environment variables.
 func InitChat() *Chat {
 	influxURL := os.Getenv("INFLUX_URL")
 	if influxURL == "" {
@@ -54,6 +55,7 @@ func InitChat() *Chat {
 	return NewChat(influxURL, authToken, org, bucket)
 }
 
+// Initialise a Chat struct with InfluxDB connection information supplied as arguments.
 func NewChat(influxURL string, authToken string, org string, bucket string) *Chat {
 	c := &Chat {
 		dbClient: influxdb2.NewClient(influxURL, authToken),
@@ -68,6 +70,7 @@ func (c *Chat) Close() {
 	c.dbClient.Close()
 }
 
+// Retrieve the messages to and from two certain users in a certain time range.
 func (c *Chat) GetMessages(ctx context.Context, from string, r model.MessageRange) ([]*model.Message, error) {
 	api := c.dbClient.QueryAPI(c.org)
 	query := fmt.Sprintf(`from(bucket:"%s")|> range(start: %d, end: %d)|> filter(fn: (r) => r._measurement == "msg" and r.to == "%s" and r.from == "%s")`, c.bucket, r.Start.Unix(), r.End.Unix(), r.To, from)
@@ -93,6 +96,7 @@ func (c *Chat) GetMessages(ctx context.Context, from string, r model.MessageRang
 	return messages, nil
 }
 
+// Send a message.
 func (c *Chat) SendMessage(ctx context.Context, sender string, message model.SendMessage) error {
 	timestamp := time.Now()
 
@@ -117,6 +121,7 @@ func (c *Chat) SendMessage(ctx context.Context, sender string, message model.Sen
 	return nil
 }
 
+// Returns a channel that messages to a certain user ID are sent to for the purposes of SSEs.
 func (c *Chat) SubscribeMessages(uid string, done <-chan struct{}) <-chan *model.Message {
 	channel := make(chan *model.Message)
 	c.mux.Lock()
