@@ -6,10 +6,10 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
-
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/graph/generated"
 	"github.com/solderneer/axiom-backend/graph/model"
@@ -173,6 +173,95 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 		return token, nil
 	default:
 		return "", Unauthorised
+	}
+}
+
+func (r *mutationResolver) CreateLessonRoom(ctx context.Context, input string) (string, error) {
+	u, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", Unauthorised
+	}
+
+	switch user := u.(type) {
+	case db.Student:
+		return "", Unauthorised
+	case db.Tutor:
+		inLesson, err := r.Repo.IsTutorInLesson(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to check lesson")
+			return "", InternalServerError
+		}
+
+		if !inLesson {
+			r.sendError(err, fmt.Sprintf("Tutor %s is not in lesson %s", user.Id, input))
+			return "", Unauthorised
+		}
+
+		room, err := r.Video.CreateRoom(input)
+		if err != nil {
+			r.sendError(err, "Unable to create room")
+			return "", InternalServerError
+		}
+
+		token, err := r.Video.GenerateAccessToken(user.Id, room.SID)
+		if err != nil {
+			r.sendError(err, "Unable to generate access token")
+			return "", InternalServerError
+		}
+
+		return token, nil
+	default:
+		return "", InternalServerError
+	}
+}
+
+func (r *mutationResolver) EndLessonRoom(ctx context.Context, input string) (string, error) {
+	u, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", Unauthorised
+	}
+
+	switch user := u.(type) {
+	case db.Student:
+		inLesson, err := r.Repo.IsStudentInLesson(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to check lesson")
+			return "", InternalServerError
+		}
+
+		if !inLesson {
+			r.sendError(err, fmt.Sprintf("Student %s is not in lesson %s", user.Id, input))
+			return "", Unauthorised
+		}
+
+		err = r.Video.CompleteRoom(input)
+		if err != nil {
+			r.sendError(err, "Unable to complete room")
+			return "", InternalServerError
+		}
+
+		return "", nil
+	case db.Tutor:
+		inLesson, err := r.Repo.IsTutorInLesson(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to check lesson")
+			return "", InternalServerError
+		}
+
+		if !inLesson {
+			r.sendError(err, fmt.Sprintf("Tutor %s is not in lesson %s", user.Id, input))
+			return "", Unauthorised
+		}
+
+		err = r.Video.CompleteRoom(input)
+		if err != nil {
+			r.sendError(err, "Unable to complete room")
+			return "", InternalServerError
+		}
+
+		return "", nil
+	default:
+		return "", InternalServerError
 	}
 }
 
@@ -538,7 +627,7 @@ func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model
 		if err == errors.New("No match found") {
 			return nil, err
 		} else if err != nil {
-			r.sendError(err, "Error retrieving matct")
+			r.sendError(err, "Error retrieving match")
 			return nil, InternalServerError
 		}
 
@@ -554,6 +643,56 @@ func (r *queryResolver) CheckForMatch(ctx context.Context, input string) (*model
 		return nil, Unauthorised
 	default:
 		return nil, Unauthorised
+	}
+}
+
+func (r *queryResolver) GetLessonRoom(ctx context.Context, input string) (string, error) {
+	u, err := auth.UserFromContext(ctx)
+	if err != nil {
+		return "", Unauthorised
+	}
+
+	switch user := u.(type) {
+	case db.Student:
+		inLesson, err := r.Repo.IsStudentInLesson(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to check lesson")
+			return "", InternalServerError
+		}
+
+		if !inLesson {
+			r.sendError(err, fmt.Sprintf("Student %s is not in lesson %s", user.Id, input))
+			return "", Unauthorised
+		}
+
+		token, err := r.Video.GenerateAccessToken(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to generate room access token")
+			return "", InternalServerError
+		}
+
+		return token, nil
+	case db.Tutor:
+		inLesson, err := r.Repo.IsTutorInLesson(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to check lesson")
+			return "", InternalServerError
+		}
+
+		if !inLesson {
+			r.sendError(err, fmt.Sprintf("Tutor %s is not in lesson %s", user.Id, input))
+			return "", Unauthorised
+		}
+
+		token, err := r.Video.GenerateAccessToken(user.Id, input)
+		if err != nil {
+			r.sendError(err, "Unable to generate room access token")
+			return "", InternalServerError
+		}
+
+		return token, nil
+	default:
+		return "", InternalServerError
 	}
 }
 

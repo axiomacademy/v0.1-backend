@@ -30,13 +30,19 @@ func (ns *NotifService) Init(logger *log.Logger) {
 	// Initialise firebase
 	fb, err := firebase.NewApp(context.Background(), nil)
 	if err != nil {
-		ns.logger.WithField("service", "notification").Fatal("Unable to connect to firebase")
+		ns.logger.WithFields(log.Fields{
+			"service": "notification",
+			"error":   err.Error(),
+		}).Fatal("Unable to connect to firebase")
 	}
 
 	// Create messaging client
 	client, err := fb.Messaging(context.Background())
 	if err != nil {
-		ns.logger.WithField("service", "notification").Fatal("Unable to create firebase messaging client")
+		ns.logger.WithFields(log.Fields{
+			"service": "notification",
+			"error":   err.Error(),
+		}).Fatal("Unable to create firebase messaging client")
 	}
 
 	ns.fb = fb

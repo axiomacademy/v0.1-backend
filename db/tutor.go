@@ -245,6 +245,17 @@ func (r *Repository) GetTutorLessons(tid string, startTime time.Time, endTime ti
 	return lessons, nil
 }
 
+func (r *Repository) IsTutorInLesson(tid string, lid string) (bool, error) {
+	sql := `SELECT 1 FROM lessons WHERE id = $1 AND tutor = $2`
+
+	rows, err := r.dbPool.Query(context.Background(), sql, lid, tid)
+	if err != nil {
+		return false, err
+	}
+
+	return rows.Next(), nil
+}
+
 // Get all the subjects associated with a tutor based on tutor UUID
 func (r *Repository) getTutorSubjects(tid string) ([]Subject, error) {
 	sql := `SELECT subjects.id, subjects.name, subjects.standard FROM subjects INNER JOIN teaching ON subjects.id = teaching.subject WHERE teaching.tutor = $1`

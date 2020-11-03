@@ -24,37 +24,53 @@ const defaultPort = "8080"
 const defaultDbUrl = "postgresql://postgres:axiom@127.0.0.1:5432/postgres?sslmode=disable"
 const defaultSecret = "password"
 
+type EnvVar struct {
+	Value    string
+	Required bool
+}
+
+// Returns all the required env variables
+func getEnvVariables() map[string]EnvVar {
+	envars := map[string]EnvVar{
+		"PORT":                           EnvVar{Value: defaultPort, Required: false},
+		"DB_URL":                         EnvVar{Value: defaultDbUrl, Required: false},
+		"SERVER_SECRET":                  EnvVar{Value: defaultSecret, Required: false},
+		"GOOGLE_APPLICATION_CREDENTIALS": EnvVar{Value: "", Required: true},
+	}
+
+	for name, envar := range envars {
+		raw := os.Getenv(name)
+
+		if raw == "" {
+			// Must have it set, no default
+			if envar.Required == true {
+				log.WithFields(log.Fields{
+					"Name": name,
+				}).Fatal("Cannot find required environmental variable")
+			} else {
+				log.WithFields(log.Fields{
+					"Name":    name,
+					"Default": envar.Value,
+				}).Warn("This environmental variable is not found, using default")
+			}
+		}
+
+		envar.Value = raw
+	}
+
+	return envars
+}
+
 func main() {
 	// Setup logger
 	var logger = log.New()
 
 	// Get default environment variables
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.WithFields(log.Fields{
-			"default_port": defaultPort,
-		}).Warn("No PORT environment variable, using default")
-		port = defaultPort
-	}
-
-	dbUrl := os.Getenv("DB_URL")
-	if dbUrl == "" {
-		log.WithFields(log.Fields{
-			"default_db_url": defaultDbUrl,
-		}).Warn("No DB_URL environment variable, using default")
-		dbUrl = defaultDbUrl
-	}
-
-	secret := os.Getenv("SERVER_SECRET")
-	if secret == "" {
-		log.WithFields(log.Fields{
-			"default_secret": defaultSecret,
-		}).Warn("No SERVER_SECRET environment variable, using default")
-	}
+	envars := getEnvVariables()
 
 	repo := db.Repository{}
-	repo.Init(logger, dbUrl)
-	repo.Migrate(dbUrl)
+	repo.Init(logger, envars["DB_URL"].Value)
+	repo.Migrate(envars["DB_URL"].Value)
 
 	defer repo.Close()
 
@@ -63,11 +79,11 @@ func main() {
 	ns.Init(logger)
 
 	ms := match.MatchService{}
-	ms.Init(logger, secret, &ns, &repo)
+	ms.Init(logger, &ns, &repo)
 
 	// Binding services to resolver
 	resolver := graph.Resolver{
-		Secret: secret,
+		Secret: envars["SERVER_SECRET"].Value,
 		Logger: logger,
 		Repo:   &repo,
 		Ns:     &ns,
@@ -81,18 +97,18 @@ func main() {
 	r.Handle("/query", graphSrv)
 
 	// Auth middleware
-	amw := middlewares.AuthMiddleware{Secret: secret, Repo: &repo}
+	amw := middlewares.AuthMiddleware{Secret: envars["SERVER_SECRET"].Value, Repo: &repo}
 	r.Use(amw.Middleware)
 
 	httpSrv := &http.Server{
 		Handler: r,
-		Addr:    "0.0.0.0:" + port,
+		Addr:    "0.0.0.0:" + envars["PORT"].Value,
 		// Enforcing timeouts
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Infof("Server fully initialised. Connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Infof("Server fully initialised. Connect to http://localhost:%s/ for GraphQL playground", envars["PORT"].Value)
 	if err := httpSrv.ListenAndServe(); err != nil {
 		log.WithField("error", err.Error()).Fatal("Sudden error, terminating server")
 	}

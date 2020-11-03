@@ -155,3 +155,14 @@ func (r *Repository) GetStudentLessons(sid string, startTime time.Time, endTime 
 
 	return lessons, nil
 }
+
+func (r *Repository) IsStudentInLesson(sid string, lid string) (bool, error) {
+	sql := `SELECT 1 FROM lessons WHERE id = $1 AND student = $2`
+
+	rows, err := r.dbPool.Query(context.Background(), sql, lid, sid)
+	if err != nil {
+		return false, err
+	}
+
+	return rows.Next(), nil
+}

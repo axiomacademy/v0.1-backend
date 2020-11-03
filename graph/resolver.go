@@ -10,6 +10,7 @@ import (
 	"github.com/solderneer/axiom-backend/db"
 	"github.com/solderneer/axiom-backend/services/match"
 	"github.com/solderneer/axiom-backend/services/notifs"
+	"github.com/solderneer/axiom-backend/services/video"
 )
 
 type Resolver struct {
@@ -17,5 +18,6 @@ type Resolver struct {
 	Logger *log.Logger
 	Repo   *db.Repository
 	Ns     *notifs.NotifService
+	Video  *video.VideoClient
 	Ms     *match.MatchService
 }

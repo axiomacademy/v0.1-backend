@@ -173,6 +173,9 @@ type Query {
   # Match Service
   getScheduledMatches(input: ScheduledMatchParameters!): [Tutor!]!
   checkForMatch(input: String!): Lesson
+  
+  # Video Service
+  getLessonRoom(input: String!): String!
 }
 
 ############################### MUTATIONS ####################################################
@@ -188,6 +191,10 @@ type Mutation {
   # Heartbeat Service
   updateHeartbeat(input: HeartbeatStatus!): String!
 
+  # Video Service
+  createLessonRoom(input: String!): String!
+  endLessonRoom(input: String!): String!
+  
   # Match Service
   requestOnDemandMatch(input: OnDemandMatchRequest!): String!
   requestScheduledMatch(input: ScheduledMatchRequest!): String!
