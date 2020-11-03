@@ -179,7 +179,7 @@ func (r *mutationResolver) UpdateHeartbeat(ctx context.Context, input model.Hear
 func (r *mutationResolver) SendMessage(ctx context.Context, input model.SendMessage) (string, error) {
 	u, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return "", err
+		return "", Unauthorised
 	}
 
 	var uid string
@@ -190,17 +190,19 @@ func (r *mutationResolver) SendMessage(ctx context.Context, input model.SendMess
 	case db.Tutor:
 		uid = user.Id
 	default:
-		return "", errors.New("Unauthorised, please log in")
+		return "", Unauthorised
 	}
 
 	err = r.Cs.SendMessage(ctx, uid, input)
 	if err != nil {
-		return "", nil
+		r.sendError(err, "Cannot send message")
+		return "", InternalServerError
 	}
 
 	token, err := auth.GenerateToken(uid, r.Secret)
 	if err != nil {
-		return "", errors.New("Error generating token")
+		r.sendError(err, "Cannot generate JWT")
+		return "", InternalServerError
 	}
 
 	return token, nil
@@ -765,7 +767,7 @@ func (r *queryResolver) GetLessonRoom(ctx context.Context, input string) (string
 func (r *subscriptionResolver) SubscribeMessages(ctx context.Context) (<-chan *model.Message, error) {
 	u, err := auth.UserFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, Unauthorised
 	}
 
 	var uid string
@@ -775,7 +777,7 @@ func (r *subscriptionResolver) SubscribeMessages(ctx context.Context) (<-chan *m
 	case db.Tutor:
 		uid = user.Id
 	default:
-		return nil, errors.New("Unauthorised, please log in")
+		return nil, Unauthorised
 	}
 
 	cchan := r.Cs.SubscribeMessages(uid, ctx.Done())
