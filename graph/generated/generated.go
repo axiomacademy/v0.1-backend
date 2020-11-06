@@ -80,6 +80,13 @@ type ComplexityRoot struct {
 		Token   func(childComplexity int) int
 	}
 
+	Message struct {
+		From      func(childComplexity int) int
+		Message   func(childComplexity int) int
+		Timestamp func(childComplexity int) int
+		To        func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AcceptOnDemandMatch      func(childComplexity int, input string) int
 		AcceptScheduledMatch     func(childComplexity int, input string) int
@@ -93,6 +100,7 @@ type ComplexityRoot struct {
 		RegisterPushNotification func(childComplexity int, input string) int
 		RequestOnDemandMatch     func(childComplexity int, input model.OnDemandMatchRequest) int
 		RequestScheduledMatch    func(childComplexity int, input model.ScheduledMatchRequest) int
+		SendMessage              func(childComplexity int, input model.SendMessage) int
 		UpdateHeartbeat          func(childComplexity int, input model.HeartbeatStatus) int
 		UpdateNotification       func(childComplexity int, input model.UpdateNotification) int
 	}
@@ -110,6 +118,7 @@ type ComplexityRoot struct {
 		GetLessonRoom       func(childComplexity int, input string) int
 		GetScheduledMatches func(childComplexity int, input model.ScheduledMatchParameters) int
 		Lessons             func(childComplexity int, input model.TimeRangeRequest) int
+		Messages            func(childComplexity int, input model.MessageRange) int
 		Notifications       func(childComplexity int, input model.TimeRangeRequest) int
 		PendingMatches      func(childComplexity int) int
 		Self                func(childComplexity int) int
@@ -131,6 +140,7 @@ type ComplexityRoot struct {
 
 	Subscription struct {
 		SubscribeMatchNotifications func(childComplexity int) int
+		SubscribeMessages           func(childComplexity int) int
 	}
 
 	Tutor struct {
@@ -155,6 +165,7 @@ type MutationResolver interface {
 	LoginTutor(ctx context.Context, input model.LoginInfo) (string, error)
 	RefreshToken(ctx context.Context) (string, error)
 	UpdateHeartbeat(ctx context.Context, input model.HeartbeatStatus) (string, error)
+	SendMessage(ctx context.Context, input model.SendMessage) (string, error)
 	CreateLessonRoom(ctx context.Context, input string) (string, error)
 	EndLessonRoom(ctx context.Context, input string) (string, error)
 	RequestOnDemandMatch(ctx context.Context, input model.OnDemandMatchRequest) (string, error)
@@ -166,6 +177,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Self(ctx context.Context) (model.User, error)
+	Messages(ctx context.Context, input model.MessageRange) ([]*model.Message, error)
 	Lessons(ctx context.Context, input model.TimeRangeRequest) ([]*model.Lesson, error)
 	PendingMatches(ctx context.Context) ([]*model.Match, error)
 	Notifications(ctx context.Context, input model.TimeRangeRequest) ([]*model.Notification, error)
@@ -174,6 +186,7 @@ type QueryResolver interface {
 	GetLessonRoom(ctx context.Context, input string) (string, error)
 }
 type SubscriptionResolver interface {
+	SubscribeMessages(ctx context.Context) (<-chan *model.Message, error)
 	SubscribeMatchNotifications(ctx context.Context) (<-chan *model.MatchNotification, error)
 }
 
@@ -339,6 +352,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.MatchNotification.Token(childComplexity), true
 
+	case "Message.from":
+		if e.complexity.Message.From == nil {
+			break
+		}
+
+		return e.complexity.Message.From(childComplexity), true
+
+	case "Message.message":
+		if e.complexity.Message.Message == nil {
+			break
+		}
+
+		return e.complexity.Message.Message(childComplexity), true
+
+	case "Message.timestamp":
+		if e.complexity.Message.Timestamp == nil {
+			break
+		}
+
+		return e.complexity.Message.Timestamp(childComplexity), true
+
+	case "Message.to":
+		if e.complexity.Message.To == nil {
+			break
+		}
+
+		return e.complexity.Message.To(childComplexity), true
+
 	case "Mutation.acceptOnDemandMatch":
 		if e.complexity.Mutation.AcceptOnDemandMatch == nil {
 			break
@@ -478,6 +519,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.RequestScheduledMatch(childComplexity, args["input"].(model.ScheduledMatchRequest)), true
 
+	case "Mutation.sendMessage":
+		if e.complexity.Mutation.SendMessage == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_sendMessage_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SendMessage(childComplexity, args["input"].(model.SendMessage)), true
+
 	case "Mutation.updateHeartbeat":
 		if e.complexity.Mutation.UpdateHeartbeat == nil {
 			break
@@ -585,6 +638,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Lessons(childComplexity, args["input"].(model.TimeRangeRequest)), true
 
+	case "Query.messages":
+		if e.complexity.Query.Messages == nil {
+			break
+		}
+
+		args, err := ec.field_Query_messages_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Messages(childComplexity, args["input"].(model.MessageRange)), true
+
 	case "Query.notifications":
 		if e.complexity.Query.Notifications == nil {
 			break
@@ -673,6 +738,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Subscription.SubscribeMatchNotifications(childComplexity), true
+
+	case "Subscription.subscribeMessages":
+		if e.complexity.Subscription.SubscribeMessages == nil {
+			break
+		}
+
+		return e.complexity.Subscription.SubscribeMessages(childComplexity), true
 
 	case "Tutor.bio":
 		if e.complexity.Tutor.Bio == nil {
@@ -937,6 +1009,13 @@ type Heartbeat {
   lastSeen: Int!
 }
 
+type Message {
+  to: String!
+  from: String!
+  timestamp: Time!
+  message: String!
+}
+
 #################################### INPUTS ################################################
 
 input NewSubject {
@@ -971,6 +1050,17 @@ input LoginInfo {
   password: String!
 }
 
+input SendMessage {
+  to: String!
+  message: String!
+}
+
+input MessageRange {
+  to: String!
+  start: Time
+  end: Time
+}
+
 input UpdateNotification {
   id: String!
   read: Boolean!
@@ -1000,6 +1090,7 @@ input TimeRangeRequest {
 
 type Query {
   self: User!
+  messages(input: MessageRange!): [Message!]!
   lessons(input: TimeRangeRequest!): [Lesson!]
   pendingMatches: [Match!] 
   notifications(input: TimeRangeRequest!): [Notification!]
@@ -1025,6 +1116,8 @@ type Mutation {
   # Heartbeat Service
   updateHeartbeat(input: HeartbeatStatus!): String!
 
+  sendMessage(input: SendMessage!): String!
+  
   # Video Service
   createLessonRoom(input: String!): String!
   endLessonRoom(input: String!): String!
@@ -1042,6 +1135,7 @@ type Mutation {
 
 ############################### SUBSCRIPTIONS ####################################################
 type Subscription {
+  subscribeMessages: Message!
   subscribeMatchNotifications: MatchNotification!
 }
 `, BuiltIn: false},
@@ -1217,6 +1311,21 @@ func (ec *executionContext) field_Mutation_requestScheduledMatch_args(ctx contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_sendMessage_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.SendMessage
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNSendMessage2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSendMessage(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateHeartbeat_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1314,6 +1423,21 @@ func (ec *executionContext) field_Query_lessons_args(ctx context.Context, rawArg
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
 		arg0, err = ec.unmarshalNTimeRangeRequest2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐTimeRangeRequest(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_messages_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.MessageRange
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("input"))
+		arg0, err = ec.unmarshalNMessageRange2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐMessageRange(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2080,6 +2204,142 @@ func (ec *executionContext) _MatchNotification_token(ctx context.Context, field 
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Message_to(ctx context.Context, field graphql.CollectedField, obj *model.Message) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Message",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.To, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Message_from(ctx context.Context, field graphql.CollectedField, obj *model.Message) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Message",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.From, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Message_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.Message) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Message",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Timestamp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Message_message(ctx context.Context, field graphql.CollectedField, obj *model.Message) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Message",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_createStudent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2303,6 +2563,47 @@ func (ec *executionContext) _Mutation_updateHeartbeat(ctx context.Context, field
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().UpdateHeartbeat(rctx, args["input"].(model.HeartbeatStatus))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_sendMessage(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_sendMessage_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SendMessage(rctx, args["input"].(model.SendMessage))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2849,6 +3150,47 @@ func (ec *executionContext) _Query_self(ctx context.Context, field graphql.Colle
 	res := resTmp.(model.User)
 	fc.Result = res
 	return ec.marshalNUser2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_messages(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_messages_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Messages(rctx, args["input"].(model.MessageRange))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Message)
+	fc.Result = res
+	return ec.marshalNMessage2ᚕᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐMessageᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_lessons(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3417,6 +3759,50 @@ func (ec *executionContext) _Subject_standard(ctx context.Context, field graphql
 	res := resTmp.(model.SubjectStandard)
 	fc.Result = res
 	return ec.marshalNSubjectStandard2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSubjectStandard(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Subscription_subscribeMessages(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Subscription",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().SubscribeMessages(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.Message)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalNMessage2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐMessage(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
 }
 
 func (ec *executionContext) _Subscription_subscribeMatchNotifications(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
@@ -4920,6 +5306,42 @@ func (ec *executionContext) unmarshalInputLoginInfo(ctx context.Context, obj int
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputMessageRange(ctx context.Context, obj interface{}) (model.MessageRange, error) {
+	var it model.MessageRange
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "to":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("to"))
+			it.To, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "start":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("start"))
+			it.Start, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "end":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("end"))
+			it.End, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewStudent(ctx context.Context, obj interface{}) (model.NewStudent, error) {
 	var it model.NewStudent
 	var asMap = obj.(map[string]interface{})
@@ -5175,6 +5597,34 @@ func (ec *executionContext) unmarshalInputScheduledMatchRequest(ctx context.Cont
 
 			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("time"))
 			it.Time, err = ec.unmarshalNTimeRangeRequest2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐTimeRangeRequest(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSendMessage(ctx context.Context, obj interface{}) (model.SendMessage, error) {
+	var it model.SendMessage
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "to":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("to"))
+			it.To, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "message":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("message"))
+			it.Message, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5455,6 +5905,48 @@ func (ec *executionContext) _MatchNotification(ctx context.Context, sel ast.Sele
 	return out
 }
 
+var messageImplementors = []string{"Message"}
+
+func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, obj *model.Message) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, messageImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Message")
+		case "to":
+			out.Values[i] = ec._Message_to(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "from":
+			out.Values[i] = ec._Message_from(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "timestamp":
+			out.Values[i] = ec._Message_timestamp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "message":
+			out.Values[i] = ec._Message_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -5497,6 +5989,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "updateHeartbeat":
 			out.Values[i] = ec._Mutation_updateHeartbeat(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "sendMessage":
+			out.Values[i] = ec._Mutation_sendMessage(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5622,6 +6119,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_self(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "messages":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_messages(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -5811,6 +6322,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	}
 
 	switch fields[0].Name {
+	case "subscribeMessages":
+		return ec._Subscription_subscribeMessages(ctx, fields[0])
 	case "subscribeMatchNotifications":
 		return ec._Subscription_subscribeMatchNotifications(ctx, fields[0])
 	default:
@@ -6238,6 +6751,62 @@ func (ec *executionContext) marshalNMatchNotification2ᚖgithubᚗcomᚋsolderne
 	return ec._MatchNotification(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNMessage2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐMessage(ctx context.Context, sel ast.SelectionSet, v model.Message) graphql.Marshaler {
+	return ec._Message(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNMessage2ᚕᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐMessageᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Message) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNMessage2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐMessage(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNMessage2ᚖgithubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐMessage(ctx context.Context, sel ast.SelectionSet, v *model.Message) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Message(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNMessageRange2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐMessageRange(ctx context.Context, v interface{}) (model.MessageRange, error) {
+	res, err := ec.unmarshalInputMessageRange(ctx, v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNNewStudent2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐNewStudent(ctx context.Context, v interface{}) (model.NewStudent, error) {
 	res, err := ec.unmarshalInputNewStudent(ctx, v)
 	return res, graphql.WrapErrorWithInputPath(ctx, err)
@@ -6300,6 +6869,11 @@ func (ec *executionContext) unmarshalNScheduledMatchParameters2githubᚗcomᚋso
 
 func (ec *executionContext) unmarshalNScheduledMatchRequest2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐScheduledMatchRequest(ctx context.Context, v interface{}) (model.ScheduledMatchRequest, error) {
 	res, err := ec.unmarshalInputScheduledMatchRequest(ctx, v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNSendMessage2githubᚗcomᚋsolderneerᚋaxiomᚑbackendᚋgraphᚋmodelᚐSendMessage(ctx context.Context, v interface{}) (model.SendMessage, error) {
+	res, err := ec.unmarshalInputSendMessage(ctx, v)
 	return res, graphql.WrapErrorWithInputPath(ctx, err)
 }
 

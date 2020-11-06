@@ -51,6 +51,19 @@ type MatchNotification struct {
 	Token   string   `json:"token"`
 }
 
+type Message struct {
+	To        string    `json:"to"`
+	From      string    `json:"from"`
+	Timestamp time.Time `json:"timestamp"`
+	Message   string    `json:"message"`
+}
+
+type MessageRange struct {
+	To    string     `json:"to"`
+	Start *time.Time `json:"start"`
+	End   *time.Time `json:"end"`
+}
+
 type NewStudent struct {
 	Username   string `json:"username"`
 	FirstName  string `json:"firstName"`
@@ -99,6 +112,11 @@ type ScheduledMatchRequest struct {
 	Tutor   string            `json:"tutor"`
 	Subject *NewSubject       `json:"subject"`
 	Time    *TimeRangeRequest `json:"time"`
+}
+
+type SendMessage struct {
+	To      string `json:"to"`
+	Message string `json:"message"`
 }
 
 type Student struct {

@@ -15,6 +15,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.12.2
 	github.com/gorilla/mux v1.8.0
+	github.com/influxdata/influxdb-client-go/v2 v2.1.0
 	github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 // indirect
 	github.com/jackc/pgtype v1.4.2
 	github.com/jackc/pgx v3.6.2+incompatible // indirect

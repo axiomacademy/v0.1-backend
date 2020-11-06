@@ -103,6 +103,13 @@ type Heartbeat {
   lastSeen: Int!
 }
 
+type Message {
+  to: String!
+  from: String!
+  timestamp: Time!
+  message: String!
+}
+
 #################################### INPUTS ################################################
 
 input NewSubject {
@@ -137,6 +144,17 @@ input LoginInfo {
   password: String!
 }
 
+input SendMessage {
+  to: String!
+  message: String!
+}
+
+input MessageRange {
+  to: String!
+  start: Time
+  end: Time
+}
+
 input UpdateNotification {
   id: String!
   read: Boolean!
@@ -166,6 +184,7 @@ input TimeRangeRequest {
 
 type Query {
   self: User!
+  messages(input: MessageRange!): [Message!]!
   lessons(input: TimeRangeRequest!): [Lesson!]
   pendingMatches: [Match!] 
   notifications(input: TimeRangeRequest!): [Notification!]
@@ -191,6 +210,9 @@ type Mutation {
   # Heartbeat Service
   updateHeartbeat(input: HeartbeatStatus!): String!
 
+  # Chat Service
+  sendMessage(input: SendMessage!): String!
+  
   # Video Service
   createLessonRoom(input: String!): String!
   endLessonRoom(input: String!): String!
@@ -208,5 +230,9 @@ type Mutation {
 
 ############################### SUBSCRIPTIONS ####################################################
 type Subscription {
+  # Chat Service
+  subscribeMessages: Message!
+
+  # Match Service
   subscribeMatchNotifications: MatchNotification!
 }

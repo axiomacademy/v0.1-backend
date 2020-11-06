@@ -16,6 +16,7 @@ import (
 	"github.com/solderneer/axiom-backend/graph/generated"
 	"github.com/solderneer/axiom-backend/middlewares"
 
+	"github.com/solderneer/axiom-backend/services/chat"
 	"github.com/solderneer/axiom-backend/services/match"
 	"github.com/solderneer/axiom-backend/services/notifs"
 )
@@ -81,12 +82,16 @@ func main() {
 	ms := match.MatchService{}
 	ms.Init(logger, &ns, &repo)
 
+	cs := chat.InitChat()
+	defer cs.Close()
+
 	// Binding services to resolver
 	resolver := graph.Resolver{
 		Secret: envars["SERVER_SECRET"].Value,
 		Logger: logger,
 		Repo:   &repo,
 		Ns:     &ns,
+		Cs:     cs,
 		Ms:     &ms,
 	}
 
