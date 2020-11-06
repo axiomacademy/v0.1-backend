@@ -12,17 +12,17 @@ import (
 )
 
 type MessageRange struct {
-	To string
+	To    string
 	Start time.Time
-	End time.Time
+	End   time.Time
 }
 
 type Chat struct {
 	dbClient influxdb2.Client
-	org string
-	bucket string
-	channels map[string] chan *model.Message
-	mux sync.Mutex
+	org      string
+	bucket   string
+	channels map[string]chan *model.Message
+	mux      sync.Mutex
 }
 
 const defaultInfluxURL = "http://localhost:8086"
@@ -57,10 +57,10 @@ func InitChat() *Chat {
 
 // Initialise a Chat struct with InfluxDB connection information supplied as arguments.
 func NewChat(influxURL string, authToken string, org string, bucket string) *Chat {
-	c := &Chat {
+	c := &Chat{
 		dbClient: influxdb2.NewClient(influxURL, authToken),
-		org: org,
-		bucket: bucket,
+		org:      org,
+		bucket:   bucket,
 	}
 
 	return c
@@ -83,11 +83,11 @@ func (c *Chat) GetMessages(ctx context.Context, from string, r model.MessageRang
 	for res.Next() {
 		record := res.Record()
 		vals := record.Values()
-		m := &model.Message {
-			To: vals["to"].(string),
-			From: vals["form"].(string),
+		m := &model.Message{
+			To:        vals["to"].(string),
+			From:      vals["form"].(string),
 			Timestamp: record.Time(),
-			Message: vals["msg"].(string),
+			Message:   vals["msg"].(string),
 		}
 
 		messages = append(messages, m)
@@ -110,11 +110,11 @@ func (c *Chat) SendMessage(ctx context.Context, sender string, message model.Sen
 	}
 
 	c.mux.Lock()
-	c.channels[message.To] <- &model.Message {
-		To: message.To,
-		From: sender,
+	c.channels[message.To] <- &model.Message{
+		To:        message.To,
+		From:      sender,
 		Timestamp: timestamp,
-		Message: message.Message,
+		Message:   message.Message,
 	}
 	c.mux.Unlock()
 
