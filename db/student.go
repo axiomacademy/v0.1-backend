@@ -138,7 +138,7 @@ func (r *Repository) GetStudentLessons(sid string, startTime time.Time, endTime 
 			return nil, err
 		}
 
-		period.Upper.AssignTo(&lesson.EndTime)
+		period.Upper.AssignTo(&lesson.StartTime)
 		period.Lower.AssignTo(&lesson.EndTime)
 
 		if lesson.Subject, err = r.GetSubjectById(sid); err != nil {

@@ -1116,6 +1116,7 @@ type Mutation {
   # Heartbeat Service
   updateHeartbeat(input: HeartbeatStatus!): String!
 
+  # Chat Service
   sendMessage(input: SendMessage!): String!
   
   # Video Service
@@ -1135,7 +1136,10 @@ type Mutation {
 
 ############################### SUBSCRIPTIONS ####################################################
 type Subscription {
+  # Chat Service
   subscribeMessages: Message!
+
+  # Match Service
   subscribeMatchNotifications: MatchNotification!
 }
 `, BuiltIn: false},
