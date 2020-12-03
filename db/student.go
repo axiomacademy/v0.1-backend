@@ -115,7 +115,7 @@ func (r *Repository) GetStudentByUsername(username string) (Student, error) {
 
 // Gets all student lessons, paginated by startTime and endTime
 func (r *Repository) GetStudentLessons(sid string, startTime time.Time, endTime time.Time) ([]Lesson, error) {
-	sql := `SELECT id, subject, tutor, student, scheduled, period FROM lessons WHERE student = $1 and $2 @> period`
+	sql := `SELECT id, subject, summary, tutor, student, scheduled, period FROM lessons WHERE student = $1 and $2 @> period`
 
 	var lessons []Lesson
 
@@ -132,14 +132,14 @@ func (r *Repository) GetStudentLessons(sid string, startTime time.Time, endTime 
 		var period pgtype.Tstzrange
 		var sid string
 
-		err := rows.Scan(&lesson.Id, &sid, &lesson.Tutor, &lesson.Student, &lesson.Scheduled, &period)
+		err := rows.Scan(&lesson.Id, &sid, &lesson.Summary, &lesson.Tutor, &lesson.Student, &lesson.Scheduled, &period)
 
 		if err != nil {
 			return nil, err
 		}
 
-		period.Upper.AssignTo(&lesson.StartTime)
-		period.Lower.AssignTo(&lesson.EndTime)
+		period.Upper.AssignTo(&lesson.EndTime)
+		period.Lower.AssignTo(&lesson.StartTime)
 
 		if lesson.Subject, err = r.GetSubjectById(sid); err != nil {
 			return nil, err

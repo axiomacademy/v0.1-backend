@@ -40,7 +40,7 @@ func (r *Repository) ToLessonModel(l Lesson) (model.Lesson, error) {
 	}
 	rsub := r.ToSubjectModel(l.Subject)
 
-	return model.Lesson{ID: l.Id, Subject: &rsub, Summary: l.Summary, Tutor: &rt, Student: &rs, Scheduled: l.Scheduled, StartTime: l.StartTime, EndTime: l.EndTime}, nil
+	return model.Lesson{ID: l.Id, Subject: &rsub, Summary: l.Summary, Tutor: &rt, Student: &rs, Scheduled: l.Scheduled, StartTime: l.StartTime.UTC(), EndTime: l.EndTime.UTC()}, nil
 }
 
 // Creates a new lesson in the database
